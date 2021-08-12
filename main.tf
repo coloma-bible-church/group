@@ -1,11 +1,10 @@
 # The configuration for the `remote` backend.
 terraform {
-  backend "remote" {
-    organization = "coloma-bible-church"
-
-    workspaces {
-      name = "group"
-    }
+  backend "azurerm" {
+    resource_group_name  = "rg-tf-cbc-group"
+    storage_account_name = "satfcbcgroup"
+    container_name       = "terraform-state"
+    key                  = "terraform.tfstate"
   }
 
   required_providers {
