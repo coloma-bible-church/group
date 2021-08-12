@@ -99,11 +99,6 @@ resource "azurerm_function_app" "default" {
   }
 }
 
-resource "azurerm_storage_queue" "default" {
-  name                 = "${var.project}-${var.environment}-storage-queue"
-  storage_account_name = azurerm_storage_account.default.name
-}
-
 resource "azurerm_eventgrid_event_subscription" "default" {
   name                 = "${var.project}-${var.environment}-event-subscription"
   scope                = azurerm_resource_group.default.id
@@ -111,11 +106,6 @@ resource "azurerm_eventgrid_event_subscription" "default" {
 
   azure_function_endpoint {
     function_id = azurerm_function_app.default.id
-  }
-
-  storage_queue_endpoint {
-    storage_account_id = azurerm_storage_account.default.id
-    queue_name         = azurerm_storage_queue.default.name
   }
 }
 
