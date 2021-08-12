@@ -21,7 +21,7 @@
             var client = new SmsClient(_options.ConnectionString);
             await client.SendAsync(
                 from: _options.ServiceNumber,
-                to: "+15028226975",
+                to: message.From,
                 message: message.Content,
                 cancellationToken: cancellationToken
             );
