@@ -99,10 +99,20 @@ resource "azurerm_function_app" "default" {
   }
 }
 
+resource "azurerm_storage_queue" "default" {
+  name                 = "${var.project}-${var.environment}-storage-queue"
+  storage_account_name = azurerm_storage_account.default.name
+}
+
 resource "azurerm_eventgrid_event_subscription" "default" {
   name                 = "${var.project}-${var.environment}-event-subscription"
   scope                = azurerm_resource_group.default.id
   included_event_types = ["SMS Received"]
+
+  storage_queue_endpoint {
+    storage_account_id = azurerm_storage_account.default.id
+    queue_name         = azurerm_storage_queue.default.name
+  }
 }
 
 resource "azurerm_communication_service" "default" {
