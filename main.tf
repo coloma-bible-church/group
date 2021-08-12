@@ -1,4 +1,3 @@
-# The configuration for the `remote` backend.
 terraform {
   backend "azurerm" {
     resource_group_name  = "rg-tf-cbc-group"
@@ -32,6 +31,11 @@ resource "azurerm_storage_account" "default" {
   account_replication_type = "LRS"
 }
 
+resource "azurerm_storage_container" "default" {
+  name                 = "${var.project}-${var.environment}-storage-container"
+  storage_account_name = azurerm_storage_account.default.name
+}
+
 resource "azurerm_application_insights" "default" {
   name                = "${var.project}-${var.environment}-application-insights"
   location            = var.location
@@ -51,6 +55,37 @@ resource "azurerm_app_service_plan" "default" {
   }
 }
 
+data "archive_file" "default" {
+  type        = "zip"
+  source_dir  = "dist"
+  output_path = "archive/app.zip"
+}
+
+resource "azurerm_storage_blob" "default" {
+  name                   = "${filesha256(data.archive_file.default.output_path)}.zip"
+  storage_account_name   = azurerm_storage_account.default.name
+  storage_container_name = azurerm_storage_container.default.name
+  type                   = "Block"
+  source                 = data.archive_file.default.output_path
+}
+
+data "azurerm_storage_account_blob_container_sas" "default" {
+  connection_string = azurerm_storage_account.default.primary_connection_string
+  container_name    = azurerm_storage_container.default.name
+
+  start  = timeadd(timestamp(), "-1h")
+  expiry = timeadd(timestamp(), "87600h")
+
+  permissions {
+    read   = true
+    add    = false
+    create = false
+    write  = false
+    delete = false
+    list   = false
+  }
+}
+
 resource "azurerm_function_app" "default" {
   name                       = "${var.project}-${var.environment}-function-app"
   location                   = var.location
@@ -58,6 +93,10 @@ resource "azurerm_function_app" "default" {
   app_service_plan_id        = azurerm_app_service_plan.default.id
   storage_account_name       = azurerm_storage_account.default.name
   storage_account_access_key = azurerm_storage_account.default.primary_access_key
+
+  app_settings = {
+    "WEBSITE_RUN_FROM_PACKAGE" = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.default.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}"
+  }
 }
 
 resource "azurerm_storage_queue" "default" {
