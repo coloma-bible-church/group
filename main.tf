@@ -106,7 +106,7 @@ resource "azurerm_storage_queue" "default" {
 
 resource "azurerm_eventgrid_event_subscription" "default" {
   name                 = "${var.project}-${var.environment}-event-subscription"
-  scope                = azurerm_resource_group.default.id
+  scope                = azurerm_communication_service.default.id
   included_event_types = ["SMS Received"]
 
   storage_queue_endpoint {
