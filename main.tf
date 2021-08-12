@@ -112,6 +112,5 @@ resource "azurerm_eventgrid_event_subscription" "default" {
 resource "azurerm_communication_service" "default" {
   name                = "${var.project}-${var.environment}-communication-service"
   resource_group_name = azurerm_resource_group.default.name
-  location            = var.location
   # Manually manage the SMS number
 }
