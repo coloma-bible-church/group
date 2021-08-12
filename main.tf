@@ -103,10 +103,6 @@ resource "azurerm_eventgrid_event_subscription" "default" {
   name                 = "${var.project}-${var.environment}-event-subscription"
   scope                = azurerm_resource_group.default.id
   included_event_types = ["SMS Received"]
-
-  azure_function_endpoint {
-    function_id = azurerm_function_app.default.id
-  }
 }
 
 resource "azurerm_communication_service" "default" {
