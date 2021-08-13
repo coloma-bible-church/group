@@ -28,12 +28,12 @@ The following has already been done for this repository. Inspired heavily by [th
       This service principle will be what Terraform uses to create/destroy resources in Azure
    1. Save service principle repository secrets<br/>
       _Outputted in the form of `"clientSecret": "xxxx-xxxxxxxxxxxxxxxxxxxxxx-xxxxxx"`_
-      |`az` command output|GitHub repository secret name|
+      |GitHub repository secret name|`az` command output|
       |-|-|
-      |`clientId`|`TF_AZ_CLIENT_ID`|
-      |`clientSecret`|`TF_AZ_CLIENT_SECRET`|
-      |`subscriptionId`|`TF_AZ_SUBSCRIPTION_ID`|
-      |`tenantId`|`TF_AZ_TENANT_ID`|
+      |`TF_AZ_CLIENT_ID`|`clientId`|
+      |`TF_AZ_CLIENT_SECRET`|`clientSecret`|
+      |`TF_AZ_SUBSCRIPTION_ID`|`subscriptionId`|
+      |`TF_AZ_TENANT_ID`|`tenantId`|
 1. Create a storage account and container
    ```
    az group create -g rg-tf-cbc-group -l northcentralus
@@ -55,13 +55,11 @@ The following has already been done for this repository. Inspired heavily by [th
    1. Sign into the [Azure portal](https://portal.azure.com/)
    1. Take note of 
    1. Navigate to Home > Subscriptions > _your subscription_ > Resources > `cbcgroup-prod-function-app`
-1. Add some environment variables to your newly-created Azure Function app
-   1. Navigate to Home > Subscriptions > _your subscription_ > Resources > `cbcgroup-prod-function-app` > Settings > Configuration
-   1. Add these Application settings:
-      |Name|Value|
-      |-|-|
-      |`CBC_GROUP_SMS_CONNECTION_STRING`|The connection string you copied above|
-      |`CBC_GROUP_SMS_SERVICE_NUMBER`|The phone number you copied above|
+1. Save additional repository secrets
+   |GitHub repository secret name|Value|
+   |-|-|
+   |`TF_VAR_SMS_CONNECTION_STRING`|The connection string you copied above|
+   |`TF_VAR_SMS_SERVICE_NUMBER`|The phone number you copied above|
 
 ## Ongoing changes
 
