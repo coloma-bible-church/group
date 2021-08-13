@@ -1,2 +1,2 @@
-project     = "cbcgroup"
-location    = "North Central US"
+project  = "cbcgroup"
+location = "North Central US"
