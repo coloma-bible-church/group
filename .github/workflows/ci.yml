@@ -4,22 +4,37 @@ on:
   push:
   pull_request:
 
-env:
-  ARM_CLIENT_ID: ${{secrets.TF_AZ_CLIENT_ID}}
-  ARM_CLIENT_SECRET: ${{secrets.TF_AZ_CLIENT_SECRET}}
-  ARM_SUBSCRIPTION_ID: ${{secrets.TF_AZ_SUBSCRIPTION_ID}}
-  ARM_TENANT_ID: ${{secrets.TF_AZ_TENANT_ID}}
-  TF_VAR_sms_connection_string: ${{secrets.TF_VAR_SMS_CONNECTION_STRING}}
-  TF_VAR_sms_service_number: ${{secrets.TF_VAR_SMS_SERVICE_NUMBER}}
-  TF_VAR_environment: stage
-
 concurrency: stage
 
 jobs:
+
+  parse:
+    runs-on: ubuntu-latest
+
+    outputs:
+      ref: ${{steps.split.outputs._2}}
+
+    steps:
+    - uses: jungwinter/split@v1
+      id: split
+      with:
+        msg: ${{github.ref}}
+        seperator: '/' # Their documentation is incorrect... this is the expected parameter name
+
   publish:
+    needs: parse
     name: 'Publish'
     runs-on: ubuntu-latest
     environment: stage
+
+    env:
+      ARM_CLIENT_ID: ${{secrets.TF_AZ_CLIENT_ID}}
+      ARM_CLIENT_SECRET: ${{secrets.TF_AZ_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID: ${{secrets.TF_AZ_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID: ${{secrets.TF_AZ_TENANT_ID}}
+      TF_VAR_sms_connection_string: ${{secrets.TF_VAR_SMS_CONNECTION_STRING}}
+      TF_VAR_sms_service_number: ${{secrets.TF_VAR_SMS_SERVICE_NUMBER}}
+      TF_VAR_environment: ${{needs.parse.outputs.ref}}
 
     defaults:
       run:
