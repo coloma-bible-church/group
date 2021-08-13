@@ -60,9 +60,8 @@ The following has already been done for this repository. Inspired heavily by [th
    1. Add these Application settings:
       |Name|Value|
       |-|-|
-      |`CBC_GROUP_MAGIC`|[A random GUID](https://www.guidgenerator.com/)|
-      |`CBC_GROUP_SMS__ConnectionString`|The connection string you copied above|
-      |`CBC_GROUP_SMS__ServiceNumber`|The phone number you copied above|
+      |`CBC_GROUP_SMS_CONNECTION_STRING`|The connection string you copied above|
+      |`CBC_GROUP_SMS_SERVICE_NUMBER`|The phone number you copied above|
 
 ## Ongoing changes
 

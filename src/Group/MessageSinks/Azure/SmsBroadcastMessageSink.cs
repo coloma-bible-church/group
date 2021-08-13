@@ -3,17 +3,15 @@
     using System.Threading;
     using System.Threading.Tasks;
     using global::Azure.Communication.Sms;
-    using Microsoft.Extensions.Options;
     using Models;
 
-    [Register(typeof(IMessageSink))]
     public class SmsBroadcastMessageSink : IMessageSink
     {
         readonly SmsBroadcastMessageSinkOptions _options;
 
-        public SmsBroadcastMessageSink(IOptions<SmsBroadcastMessageSinkOptions> options)
+        public SmsBroadcastMessageSink(SmsBroadcastMessageSinkOptions options)
         {
-            _options = options.Value;
+            _options = options;
         }
 
         public async Task HandleAsync(Message message, CancellationToken cancellationToken)
