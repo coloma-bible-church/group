@@ -11,9 +11,6 @@ jobs:
     name: 'Publish'
     runs-on: ubuntu-latest
     environment: production
-    strategy:
-      matrix:
-        dotnet: [ '3.1.x', '5.0.x' ]
 
     env:
       ARM_CLIENT_ID: ${{secrets.TF_AZ_CLIENT_ID}}
@@ -30,13 +27,10 @@ jobs:
       uses: actions/checkout@v2
 
     # .NET
-    - name: Set up .NET ${{ matrix.dotnet-version }}
+    - name: Set up .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: ${{ matrix.dotnet-version }}
-
-    - name: Display .NET version
-      run: dotnet --version
+        dotnet-version: 3.1.x
 
     - name: Restore dependencies
       run: dotnet restore src
