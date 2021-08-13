@@ -3,7 +3,7 @@ terraform {
     resource_group_name  = "rg-tf-cbc-group"
     storage_account_name = "satfcbcgroup"
     container_name       = "terraform-state"
-    key                  = "terraform-prod.tfstate"
+    key                  = "terraform-stage.tfstate"
   }
 
   required_providers {
