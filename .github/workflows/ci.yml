@@ -47,7 +47,7 @@ jobs:
       run: dotnet publish src/Group/Group.csproj -c Release -o dist
 
     # Terraform
-    - name: Setup Terraform
+    - name: Set up Terraform
       uses: hashicorp/setup-terraform@v1
 
     - name: Terraform Init
