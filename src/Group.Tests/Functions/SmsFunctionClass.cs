@@ -28,8 +28,7 @@
                     from: Guid.NewGuid().ToString(),
                     fromFriendly: Guid.NewGuid().ToString(),
                     content: Guid.NewGuid().ToString(),
-                    time: DateTimeOffset.Now,
-                    to: Guid.NewGuid().ToString()
+                    time: DateTimeOffset.Now
                 );
 
                 await function.RunAsync(message, CancellationToken.None);

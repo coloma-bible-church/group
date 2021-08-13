@@ -9,11 +9,13 @@ namespace Group.Functions
     using System.Threading.Tasks;
     using JetBrains.Annotations;
     using MessageSinks;
+    using Microsoft.Azure.EventGrid.Models;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Extensions.EventGrid;
     using Microsoft.Extensions.Logging;
     using Models;
     using Models.Sms;
+    using Newtonsoft.Json;
 
     public class SmsFunction
     {
@@ -26,18 +28,17 @@ namespace Group.Functions
 
         [UsedImplicitly]
         [FunctionName("sms")]
-        public static async Task Run([EventGridTrigger]SmsReceivedEvent e, ILogger logger, CancellationToken cancellationToken)
+        public static async Task Run([EventGridTrigger]EventGridEvent e, ILogger logger, CancellationToken cancellationToken)
         {
             try
             {
-                if (e.Data is not { From: {} from, Message: {} content, ReceivedTimestamp: {} time, To: {} to })
-                    throw new Exception("Bad request");
+                if (JsonConvert.DeserializeObject<SmsReceivedEventData>(e.Data.ToString()) is not { From: {} from, Message: {} content, ReceivedTimestamp: {} time })
+                    throw new Exception("Missing fields");
                 var message = new Message(
                     from: from,
                     fromFriendly: Guid.NewGuid().ToString(),
                     content: content,
-                    time: time,
-                    to: to
+                    time: time
                 );
                 await Module.UseAsync(
                     async (SmsFunction function) => await function.RunAsync(message, cancellationToken),
