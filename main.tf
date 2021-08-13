@@ -31,8 +31,13 @@ resource "azurerm_storage_account" "default" {
   account_replication_type = "LRS"
 }
 
-resource "azurerm_storage_container" "default" {
-  name                 = "${var.project}-${var.environment}-storage-container"
+resource "azurerm_storage_container" "app" {
+  name                 = "${var.project}-${var.environment}-storage-container-app"
+  storage_account_name = azurerm_storage_account.default.name
+}
+
+resource "azurerm_storage_container" "dead" {
+  name                 = "${var.project}-${var.environment}-storage-container-dead"
   storage_account_name = azurerm_storage_account.default.name
 }
 
@@ -64,14 +69,14 @@ data "archive_file" "default" {
 resource "azurerm_storage_blob" "default" {
   name                   = "${filesha256(data.archive_file.default.output_path)}.zip"
   storage_account_name   = azurerm_storage_account.default.name
-  storage_container_name = azurerm_storage_container.default.name
+  storage_container_name = azurerm_storage_container.app.name
   type                   = "Block"
   source                 = data.archive_file.default.output_path
 }
 
 data "azurerm_storage_account_blob_container_sas" "default" {
   connection_string = azurerm_storage_account.default.primary_connection_string
-  container_name    = azurerm_storage_container.default.name
+  container_name    = azurerm_storage_container.app.name
 
   start  = timeadd(timestamp(), "-1h")
   expiry = timeadd(timestamp(), "87600h")
@@ -95,13 +100,8 @@ resource "azurerm_function_app" "default" {
   storage_account_access_key = azurerm_storage_account.default.primary_access_key
 
   app_settings = {
-    "WEBSITE_RUN_FROM_PACKAGE" = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.default.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}"
+    "WEBSITE_RUN_FROM_PACKAGE" = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}"
   }
-}
-
-resource "azurerm_storage_queue" "default" {
-  name                 = "${var.project}-${var.environment}-storage-queue"
-  storage_account_name = azurerm_storage_account.default.name
 }
 
 resource "azurerm_eventgrid_event_subscription" "default" {
@@ -109,9 +109,13 @@ resource "azurerm_eventgrid_event_subscription" "default" {
   scope                = azurerm_communication_service.default.id
   included_event_types = ["Microsoft.Communication.SMSReceived"]
 
-  storage_queue_endpoint {
+  storage_blob_dead_letter_destination {
     storage_account_id = azurerm_storage_account.default.id
-    queue_name         = azurerm_storage_queue.default.name
+    storage_blob_container_name = azurerm_storage_container.dead.name
+  }
+
+  azure_function_endpoint {
+    function_id = "${azurerm_function_app.default.id}/functions/sms"
   }
 }
 
