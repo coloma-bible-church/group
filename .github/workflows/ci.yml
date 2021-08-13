@@ -4,8 +4,6 @@ on:
   push:
   pull_request:
 
-concurrency: stage
-
 jobs:
 
   parse:
@@ -25,7 +23,8 @@ jobs:
     needs: parse
     name: 'Publish'
     runs-on: ubuntu-latest
-    environment: stage
+    environment: ${{needs.parse.outputs.ref}}
+    concurrency: ${{needs.parse.outputs.ref}}
 
     env:
       ARM_CLIENT_ID: ${{secrets.TF_AZ_CLIENT_ID}}
