@@ -129,3 +129,34 @@ resource "azurerm_communication_service" "default" {
   resource_group_name = azurerm_resource_group.default.name
   # Manually manage the SMS number
 }
+
+resource "azurerm_cosmosdb_account" "default" {
+  name                = "${var.project}-${var.environment}-cosmosodb-account"
+  resource_group_name = azurerm_resource_group.default.name
+  location            = var.location
+  offer_type          = "Standard"
+
+  capabilities {
+    name = "EnableServerless"
+  }
+
+  consistency_policy {
+    consistency_level = "ConsistentPrefix"
+  }
+
+  geo_location {
+    location          = var.location
+    failover_priority = 0
+  }
+}
+
+resource "azurerm_cosmosdb_table" "default" {
+  name                = "${var.project}-${var.environment}-cosmosodb-table"
+  resource_group_name = azurerm_resource_group.default.name
+  account_name        = azurerm_cosmosdb_account.default.name
+  throughput          = 400
+
+  autoscale_settings {
+    max_throughput = 4000
+  }
+}
