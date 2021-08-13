@@ -91,24 +91,6 @@ data "azurerm_storage_account_blob_container_sas" "default" {
   }
 }
 
-resource "azurerm_function_app" "default" {
-  name                       = "${var.project}-${var.environment}-function-app"
-  location                   = var.location
-  resource_group_name        = azurerm_resource_group.default.name
-  app_service_plan_id        = azurerm_app_service_plan.default.id
-  storage_account_name       = azurerm_storage_account.default.name
-  storage_account_access_key = azurerm_storage_account.default.primary_access_key
-  version                    = "~3"
-
-  app_settings = {
-    "WEBSITE_RUN_FROM_PACKAGE"        = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}",
-    "CBC_GROUP_SMS_CONNECTION_STRING" = var.SMS_CONNECTION_STRING,
-    "CBC_GROUP_SMS_SERVICE_NUMBER"    = var.SMS_SERVICE_NUMBER,
-    "APPINSIGHTS_INSTRUMENTATIONKEY"  = azurerm_application_insights.default.instrumentation_key,
-    "FUNCTIONS_WORKER_RUNTIME"        = "dotnet"
-  }
-}
-
 resource "azurerm_eventgrid_event_subscription" "default" {
   name                 = "${var.project}-${var.environment}-event-subscription"
   scope                = azurerm_communication_service.default.id
@@ -157,5 +139,25 @@ resource "azurerm_cosmosdb_table" "default" {
 
   autoscale_settings {
     max_throughput = 4000
+  }
+}
+
+resource "azurerm_function_app" "default" {
+  name                       = "${var.project}-${var.environment}-function-app"
+  location                   = var.location
+  resource_group_name        = azurerm_resource_group.default.name
+  app_service_plan_id        = azurerm_app_service_plan.default.id
+  storage_account_name       = azurerm_storage_account.default.name
+  storage_account_access_key = azurerm_storage_account.default.primary_access_key
+  version                    = "~3"
+
+  app_settings = {
+    "WEBSITE_RUN_FROM_PACKAGE"        = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}",
+    "CBC_GROUP_SMS_CONNECTION_STRING" = var.SMS_CONNECTION_STRING,
+    "CBC_GROUP_SMS_SERVICE_NUMBER"    = var.SMS_SERVICE_NUMBER,
+    "APPINSIGHTS_INSTRUMENTATIONKEY"  = azurerm_application_insights.default.instrumentation_key,
+    "FUNCTIONS_WORKER_RUNTIME"        = "dotnet",
+    "CBC_GROUP_DB_ENDPOINT"           = azurerm_cosmosdb_account.default.endpoint,
+    "CBC_GROUP_DB_KEY"                = azurerm_cosmosdb_account.default.primary_key
   }
 }
