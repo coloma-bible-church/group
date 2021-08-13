@@ -3,7 +3,7 @@ terraform {
     resource_group_name  = "rg-tf-cbc-group"
     storage_account_name = "satfcbcgroup"
     container_name       = "terraform-state"
-    key                  = "terraform.tfstate"
+    key                  = "terraform-prod.tfstate"
   }
 
   required_providers {
@@ -157,8 +157,8 @@ resource "azurerm_function_app" "default" {
 
   app_settings = {
     "WEBSITE_RUN_FROM_PACKAGE"             = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}",
-    "CBC_GROUP_SMS_CONNECTION_STRING"      = var.SMS_CONNECTION_STRING,
-    "CBC_GROUP_SMS_SERVICE_NUMBER"         = var.SMS_SERVICE_NUMBER,
+    "CBC_GROUP_SMS_CONNECTION_STRING"      = var.sms_connection_string,
+    "CBC_GROUP_SMS_SERVICE_NUMBER"         = var.sms_service_number,
     "APPINSIGHTS_INSTRUMENTATIONKEY"       = azurerm_application_insights.default.instrumentation_key,
     "FUNCTIONS_WORKER_RUNTIME"             = "dotnet",
     "CBC_GROUP_DB_ENDPOINT"                = azurerm_cosmosdb_account.default.endpoint,

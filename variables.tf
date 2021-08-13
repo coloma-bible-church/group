@@ -13,13 +13,13 @@ variable "location" {
   description = "Azure region for deployment"
 }
 
-variable "SMS_CONNECTION_STRING" {
+variable "sms_connection_string" {
   type        = string
   description = "Connection string for SMS client in app"
   sensitive   = true
 }
 
-variable "SMS_SERVICE_NUMBER" {
+variable "sms_service_number" {
   type        = string
   description = "Phone number from which SMS client sends messages in app"
   sensitive   = true
