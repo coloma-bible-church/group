@@ -100,7 +100,9 @@ resource "azurerm_function_app" "default" {
   storage_account_access_key = azurerm_storage_account.default.primary_access_key
 
   app_settings = {
-    "WEBSITE_RUN_FROM_PACKAGE" = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}"
+    "WEBSITE_RUN_FROM_PACKAGE"        = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}",
+    "CBC_GROUP_SMS_CONNECTION_STRING" = var.sms_connection_string,
+    "CBC_GROUP_SMS_SERVICE_NUMBER"    = var.sms_service_number
   }
 }
 
@@ -110,7 +112,7 @@ resource "azurerm_eventgrid_event_subscription" "default" {
   included_event_types = ["Microsoft.Communication.SMSReceived"]
 
   storage_blob_dead_letter_destination {
-    storage_account_id = azurerm_storage_account.default.id
+    storage_account_id          = azurerm_storage_account.default.id
     storage_blob_container_name = azurerm_storage_container.dead.name
   }
 
