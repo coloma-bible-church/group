@@ -154,7 +154,6 @@ resource "azurerm_cosmosdb_table" "default" {
   name                = "${var.project}-${var.environment}-cosmosodb-table"
   resource_group_name = azurerm_resource_group.default.name
   account_name        = azurerm_cosmosdb_account.default.name
-  throughput          = 400
 
   autoscale_settings {
     max_throughput = 4000
