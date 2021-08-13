@@ -3,7 +3,6 @@ terraform {
     resource_group_name  = "rg-tf-cbc-group"
     storage_account_name = "satfcbcgroup"
     container_name       = "terraform-state"
-    key                  = "terraform-stage.tfstate"
   }
 
   required_providers {
@@ -102,7 +101,9 @@ resource "azurerm_eventgrid_event_subscription" "default" {
   }
 
   azure_function_endpoint {
-    function_id = "${azurerm_function_app.default.id}/functions/sms"
+    function_id                       = "${azurerm_function_app.default.id}/functions/sms"
+    max_events_per_batch              = 1
+    preferred_batch_size_in_kilobytes = 64
   }
 }
 

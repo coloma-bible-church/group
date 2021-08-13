@@ -20,6 +20,9 @@ jobs:
         msg: ${{github.ref}}
         seperator: '/' # Their documentation is incorrect... this is the expected parameter name
 
+    - run: |
+        echo "The environment will be ${{steps.split.outputs._2}}"
+
   publish:
     needs: parse
     name: 'Publish'
@@ -53,11 +56,8 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore src
 
-    - name: Build
-      run: dotnet build src --no-restore
-
     - name: Test
-      run: dotnet test src --no-build --verbosity normal
+      run: dotnet test src --verbosity normal
 
     - name: Publish
       run: dotnet publish src/Group/Group.csproj -c Release -o dist
@@ -67,7 +67,9 @@ jobs:
       uses: hashicorp/setup-terraform@v1
 
     - name: Terraform Init
-      run: terraform init
+      run: |
+        terraform init \
+        -backend-config="key=terraform-${{needs.parse.outputs.ref}}.tfstate"
 
     - name: Terraform Format
       run: terraform fmt -check
