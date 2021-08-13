@@ -98,12 +98,14 @@ resource "azurerm_function_app" "default" {
   app_service_plan_id        = azurerm_app_service_plan.default.id
   storage_account_name       = azurerm_storage_account.default.name
   storage_account_access_key = azurerm_storage_account.default.primary_access_key
+  version                    = "~3"
 
   app_settings = {
     "WEBSITE_RUN_FROM_PACKAGE"        = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}",
     "CBC_GROUP_SMS_CONNECTION_STRING" = var.SMS_CONNECTION_STRING,
     "CBC_GROUP_SMS_SERVICE_NUMBER"    = var.SMS_SERVICE_NUMBER,
-    "APPINSIGHTS_INSTRUMENTATIONKEY"  = azurerm_application_insights.default.instrumentation_key
+    "APPINSIGHTS_INSTRUMENTATIONKEY"  = azurerm_application_insights.default.instrumentation_key,
+    "FUNCTIONS_WORKER_RUNTIME"        = "dotnet"
   }
 }
 
