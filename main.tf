@@ -101,8 +101,8 @@ resource "azurerm_function_app" "default" {
 
   app_settings = {
     "WEBSITE_RUN_FROM_PACKAGE"        = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}",
-    "CBC_GROUP_SMS_CONNECTION_STRING" = var.sms_connection_string,
-    "CBC_GROUP_SMS_SERVICE_NUMBER"    = var.sms_service_number
+    "CBC_GROUP_SMS_CONNECTION_STRING" = var.SMS_CONNECTION_STRING,
+    "CBC_GROUP_SMS_SERVICE_NUMBER"    = var.SMS_SERVICE_NUMBER
   }
 }
 
