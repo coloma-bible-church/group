@@ -4,11 +4,10 @@ on:
   push:
   pull_request:
 
-concurrency: prod
-
 jobs:
 
   parse:
+    name: Parse environment
     runs-on: ubuntu-latest
 
     outputs:
@@ -25,7 +24,8 @@ jobs:
     needs: parse
     name: 'Publish'
     runs-on: ubuntu-latest
-    environment: prod
+    environment: ${{needs.parse.outputs.ref}}
+    concurrency: ${{needs.parse.outputs.ref}}
 
     env:
       ARM_CLIENT_ID: ${{secrets.TF_AZ_CLIENT_ID}}
