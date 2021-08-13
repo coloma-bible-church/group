@@ -1,0 +1,64 @@
+name: 'Publish'
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+
+jobs:
+  publish:
+    name: 'Publish'
+    runs-on: ubuntu-latest
+
+    env:
+      ARM_CLIENT_ID: ${{secrets.TF_AZ_CLIENT_ID}}
+      ARM_CLIENT_SECRET: ${{secrets.TF_AZ_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID: ${{secrets.TF_AZ_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID: ${{secrets.TF_AZ_TENANT_ID}}
+      TF_VAR_SMS_CONNECTION_STRING: ${{secrets.TF_VAR_SMS_CONNECTION_STRING}}
+      TF_VAR_SMS_SERVICE_NUMBER: ${{secrets.TF_VAR_SMS_SERVICE_NUMBER}}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    # .NET
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+
+    - name: Restore dependencies
+      run: dotnet restore src
+
+    - name: Build
+      run: dotnet build src --no-restore
+
+    - name: Test
+      run: dotnet test src --no-build --verbosity normal
+
+    - name: Publish
+      run: dotnet publish src/Group/Group.csproj -c Release -o dist
+
+    # Terraform
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Format
+      run: terraform fmt -check
+
+    - name: Terraform Plan
+      if: github.ref != 'refs/heads/main' || github.event_name != 'push'
+      run: terraform plan
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform apply -auto-approve
