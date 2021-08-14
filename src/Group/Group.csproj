@@ -9,6 +9,7 @@
     <PackageReference Include="Autofac" Version="6.2.0" />
     <PackageReference Include="Azure.Communication.Sms" Version="1.0.1" />
     <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.EventGrid" Version="2.1.0" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.13" />
   </ItemGroup>
