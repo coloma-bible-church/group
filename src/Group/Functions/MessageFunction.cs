@@ -1,6 +1,5 @@
 ﻿namespace Group.Functions
 {
-    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using JetBrains.Annotations;
@@ -20,11 +19,12 @@
             ILogger logger,
             CancellationToken cancellationToken)
         {
-            logger.LogInformation($"POSTED by {request.HttpContext.Connection.RemoteIpAddress}!");
-            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            var user = request.HttpContext.User;
+            logger.LogInformation($"POSTED by {request.HttpContext.Connection.RemoteIpAddress} {user.Identity.Name}!");
+            await Task.CompletedTask;
             return new OkObjectResult(new
             {
-                Status = "success"
+                You = user.Identity.Name
             });
         }
     }
