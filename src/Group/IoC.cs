@@ -2,15 +2,13 @@
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using System.Threading.Tasks;
     using Autofac;
     using Functions;
     using MessageSinks;
     using MessageSinks.Azure;
-    using Microsoft.Extensions.Logging;
 
     [SuppressMessage("ReSharper", "RedundantTypeArgumentsOfMethod")]
-    public class Module
+    public class IoC
     {
         static void Register(ContainerBuilder builder)
         {
@@ -20,16 +18,23 @@
             builder.Register<SmsBroadcastMessageSinkOptions>(c => c.Resolve<SmsBroadcastMessageSinkOptionsProvider>().Get());
         }
 
-        public static async Task UseAsync<T>(Func<T, Task> useAsync, ILogger? logger = null)
+        public static Owned<T> Get<T>(Action<ContainerBuilder>? register = null)
             where T : notnull
         {
             var builder = new ContainerBuilder();
             Register(builder);
-            if (logger is not null)
-                builder.RegisterInstance(logger);
-            await using var context = builder.Build();
-            var instance = context.Resolve<T>();
-            await useAsync(instance);
+            register?.Invoke(builder);
+            var context = builder.Build();
+            try
+            {
+                var instance = context.Resolve<T>();
+                return new Owned<T>(context, instance);
+            }
+            catch (Exception e)
+            {
+                context.Dispose();
+                throw new Exception("Error while resolving", e);
+            }
         }
     }
 }

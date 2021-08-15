@@ -1,12 +1,10 @@
-// Default URL for triggering event grid function in the local environment.
-// http://localhost:7071/runtime/webhooks/EventGrid?functionName={functionname}
-
 namespace Group.Functions
 {
     using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Autofac;
     using JetBrains.Annotations;
     using MessageSinks;
     using Microsoft.Azure.EventGrid.Models;
@@ -40,10 +38,10 @@ namespace Group.Functions
                     content: content,
                     time: time
                 );
-                await Module.UseAsync(
-                    async (SmsFunction function) => await function.RunAsync(message, cancellationToken),
-                    logger
+                using var function = IoC.Get<SmsFunction>(
+                    builder => builder.RegisterInstance(logger)
                 );
+                await function.Value.RunAsync(message, cancellationToken);
             }
             catch (Exception exception)
             {
