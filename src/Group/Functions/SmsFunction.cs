@@ -13,15 +13,23 @@ namespace Group.Functions
     using Microsoft.Extensions.Logging;
     using Models;
     using Models.Sms;
+    using Models.Users;
     using Newtonsoft.Json;
 
     public class SmsFunction
     {
         readonly IEnumerable<IMessageSink> _messageSinks;
+        readonly UserRepository _userRepository;
+        readonly ILogger _logger;
 
-        public SmsFunction(IEnumerable<IMessageSink> messageSinks)
+        public SmsFunction(
+            IEnumerable<IMessageSink> messageSinks,
+            UserRepository userRepository,
+            ILogger logger)
         {
             _messageSinks = messageSinks;
+            _userRepository = userRepository;
+            _logger = logger;
         }
 
         [UsedImplicitly]
@@ -52,6 +60,18 @@ namespace Group.Functions
 
         public async Task RunAsync(Message message, CancellationToken cancellationToken)
         {
+            if (await _userRepository.FindUserIdAsync(message.From, cancellationToken) is not {} userId)
+            {
+                _logger.LogWarning($"Cannot find user ID corresponding to phone number {message.From}. Creating a user account now...");
+                userId = await _userRepository.CreateUserAsync(
+                    new UserModel
+                    {
+                        PhoneNumber = message.From
+                    },
+                    cancellationToken
+                );
+            }
+            _logger.LogInformation($"Sending message from {userId} (phone)");
             foreach (var sink in _messageSinks)
             {
                 await sink.HandleAsync(message, cancellationToken);

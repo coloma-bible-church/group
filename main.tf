@@ -90,21 +90,38 @@ data "azurerm_storage_account_blob_container_sas" "default" {
   }
 }
 
-resource "azurerm_eventgrid_event_subscription" "default" {
-  name                 = "${var.project}-${var.environment}-event-subscription"
-  scope                = var.communication_service_id
-  included_event_types = ["Microsoft.Communication.SMSReceived"]
+resource "azurerm_cosmosdb_account" "default" {
+  name                = "${var.project}-${var.environment}-cosmosodb-account"
+  resource_group_name = azurerm_resource_group.default.name
+  location            = var.location
+  offer_type          = "Standard"
 
-  storage_blob_dead_letter_destination {
-    storage_account_id          = azurerm_storage_account.default.id
-    storage_blob_container_name = azurerm_storage_container.dead.name
+  capabilities {
+    name = "EnableServerless"
   }
 
-  azure_function_endpoint {
-    function_id                       = "${azurerm_function_app.default.id}/functions/sms"
-    max_events_per_batch              = 1
-    preferred_batch_size_in_kilobytes = 64
+  consistency_policy {
+    consistency_level = "ConsistentPrefix"
   }
+
+  geo_location {
+    location          = var.location
+    failover_priority = 0
+  }
+}
+
+resource "azurerm_cosmosdb_sql_database" "default" {
+  name                = "${var.project}-${var.environment}-cosmosodb-sql-database"
+  resource_group_name = azurerm_resource_group.default.name
+  account_name        = azurerm_cosmosdb_account.default.name
+}
+
+resource "azurerm_cosmosdb_sql_container" "users" {
+  name                = "${var.project}-${var.environment}-cosmosdb-sql-container-users"
+  resource_group_name = azurerm_resource_group.default.name
+  account_name        = azurerm_cosmosdb_account.default.name
+  database_name       = azurerm_cosmosdb_sql_database.default.name
+  partition_key_path  = "/id"
 }
 
 resource "azurerm_function_app" "default" {
@@ -121,6 +138,26 @@ resource "azurerm_function_app" "default" {
     "CBC_GROUP_SMS_CONNECTION_STRING" = var.sms_connection_string,
     "CBC_GROUP_SMS_SERVICE_NUMBER"    = var.sms_service_number,
     "APPINSIGHTS_INSTRUMENTATIONKEY"  = azurerm_application_insights.default.instrumentation_key,
-    "FUNCTIONS_WORKER_RUNTIME"        = "dotnet"
+    "FUNCTIONS_WORKER_RUNTIME"        = "dotnet",
+    "DB_CONNECTION_STRING"            = element(azurerm_cosmosdb_account.default.connection_strings, 0),
+    "DB_DB_ID"                        = azurerm_cosmosdb_sql_database.default.id,
+    "DB_USERS_CONTAINER_ID"           = azurerm_cosmosdb_sql_container.users.id
+  }
+}
+
+resource "azurerm_eventgrid_event_subscription" "default" {
+  name                 = "${var.project}-${var.environment}-event-subscription"
+  scope                = var.communication_service_id
+  included_event_types = ["Microsoft.Communication.SMSReceived"]
+
+  storage_blob_dead_letter_destination {
+    storage_account_id          = azurerm_storage_account.default.id
+    storage_blob_container_name = azurerm_storage_container.dead.name
+  }
+
+  azure_function_endpoint {
+    function_id                       = "${azurerm_function_app.default.id}/functions/sms"
+    max_events_per_batch              = 1
+    preferred_batch_size_in_kilobytes = 64
   }
 }
