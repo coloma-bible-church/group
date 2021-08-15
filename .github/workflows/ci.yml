@@ -38,6 +38,7 @@ jobs:
       TF_VAR_sms_connection_string: ${{secrets.TF_VAR_SMS_CONNECTION_STRING}}
       TF_VAR_sms_service_number: ${{secrets.TF_VAR_SMS_SERVICE_NUMBER}}
       TF_VAR_environment: ${{needs.parse.outputs.ref}}
+      TF_VAR_communication_service_id: ${{secrets.TF_VAR_COMMUNICATION_SERVICE_ID}}
 
     defaults:
       run:

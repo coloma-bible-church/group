@@ -92,7 +92,7 @@ data "azurerm_storage_account_blob_container_sas" "default" {
 
 resource "azurerm_eventgrid_event_subscription" "default" {
   name                 = "${var.project}-${var.environment}-event-subscription"
-  scope                = azurerm_communication_service.default.id
+  scope                = var.communication_service_id
   included_event_types = ["Microsoft.Communication.SMSReceived"]
 
   storage_blob_dead_letter_destination {
@@ -105,12 +105,6 @@ resource "azurerm_eventgrid_event_subscription" "default" {
     max_events_per_batch              = 1
     preferred_batch_size_in_kilobytes = 64
   }
-}
-
-resource "azurerm_communication_service" "default" {
-  name                = "${var.project}-${var.environment}-communication-service"
-  resource_group_name = azurerm_resource_group.default.name
-  # Manually manage the SMS number
 }
 
 resource "azurerm_cosmosdb_account" "default" {
