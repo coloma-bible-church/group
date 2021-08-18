@@ -51,11 +51,12 @@ resource "azurerm_app_service_plan" "default" {
   name                = "${var.project}-${var.environment}-app-service-plan"
   resource_group_name = azurerm_resource_group.default.name
   location            = var.location
-  kind                = "FunctionApp"
+  kind                = "Linux"
+  reserved            = true
 
   sku {
-    tier = "Dynamic"
-    size = "Y1"
+    tier = "Basic"
+    size = "B1"
   }
 }
 
@@ -90,29 +91,6 @@ data "azurerm_storage_account_blob_container_sas" "default" {
   }
 }
 
-resource "azurerm_eventgrid_event_subscription" "default" {
-  name                 = "${var.project}-${var.environment}-event-subscription"
-  scope                = azurerm_communication_service.default.id
-  included_event_types = ["Microsoft.Communication.SMSReceived"]
-
-  storage_blob_dead_letter_destination {
-    storage_account_id          = azurerm_storage_account.default.id
-    storage_blob_container_name = azurerm_storage_container.dead.name
-  }
-
-  azure_function_endpoint {
-    function_id                       = "${azurerm_function_app.default.id}/functions/sms"
-    max_events_per_batch              = 1
-    preferred_batch_size_in_kilobytes = 64
-  }
-}
-
-resource "azurerm_communication_service" "default" {
-  name                = "${var.project}-${var.environment}-communication-service"
-  resource_group_name = azurerm_resource_group.default.name
-  # Manually manage the SMS number
-}
-
 resource "azurerm_cosmosdb_account" "default" {
   name                = "${var.project}-${var.environment}-cosmosodb-account"
   resource_group_name = azurerm_resource_group.default.name
@@ -139,33 +117,32 @@ resource "azurerm_cosmosdb_sql_database" "default" {
   account_name        = azurerm_cosmosdb_account.default.name
 }
 
-resource "azurerm_cosmosdb_sql_container" "default" {
-  name                = "${var.project}-${var.environment}-cosmosdb-sql-container"
+resource "azurerm_cosmosdb_sql_container" "users" {
+  name                = "${var.project}-${var.environment}-cosmosdb-sql-container-users"
   resource_group_name = azurerm_resource_group.default.name
   account_name        = azurerm_cosmosdb_account.default.name
   database_name       = azurerm_cosmosdb_sql_database.default.name
   partition_key_path  = "/id"
 }
 
-resource "azurerm_function_app" "default" {
-  name                       = "${var.project}-${var.environment}-function-app"
-  location                   = var.location
-  resource_group_name        = azurerm_resource_group.default.name
-  app_service_plan_id        = azurerm_app_service_plan.default.id
-  storage_account_name       = azurerm_storage_account.default.name
-  storage_account_access_key = azurerm_storage_account.default.primary_access_key
-  version                    = "~3"
+resource "azurerm_app_service" "default" {
+  name                = "${var.project}-${var.environment}-app-service"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.default.name
+  app_service_plan_id = azurerm_app_service_plan.default.id
 
   app_settings = {
-    "WEBSITE_RUN_FROM_PACKAGE"             = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}",
-    "CBC_GROUP_SMS_CONNECTION_STRING"      = var.sms_connection_string,
-    "CBC_GROUP_SMS_SERVICE_NUMBER"         = var.sms_service_number,
-    "APPINSIGHTS_INSTRUMENTATIONKEY"       = azurerm_application_insights.default.instrumentation_key,
-    "FUNCTIONS_WORKER_RUNTIME"             = "dotnet",
-    "CBC_GROUP_DB_ENDPOINT"                = azurerm_cosmosdb_account.default.endpoint,
-    "CBC_GROUP_DB_KEY"                     = azurerm_cosmosdb_account.default.primary_key,
-    "CBC_GROUP_DB_ID"                      = azurerm_cosmosdb_sql_database.default.id,
-    "CBC_GROUP_DB_CONTAINER_ID"            = azurerm_cosmosdb_sql_container.default.id,
-    "CBC_GROUP_DB_CONTAINER_PARTITION_KEY" = azurerm_cosmosdb_sql_container.default.partition_key_path
+    "WEBSITE_RUN_FROM_PACKAGE"       = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}",
+    "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.default.instrumentation_key,
+    "FUNCTIONS_WORKER_RUNTIME"       = "dotnet",
+    "DB_CONNECTION_STRING"           = element(azurerm_cosmosdb_account.default.connection_strings, 0),
+    "DB_DB_ID"                       = azurerm_cosmosdb_sql_database.default.id,
+    "DB_USERS_CONTAINER_ID"          = azurerm_cosmosdb_sql_container.users.id,
+    "TWILIO_AUTH_TOKEN"              = var.twilio_auth_token
+  }
+
+  site_config {
+    dotnet_framework_version = "v5.0"
+    linux_fx_version         = "DOTNETCORE|5.0"
   }
 }

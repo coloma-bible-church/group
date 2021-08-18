@@ -35,9 +35,8 @@ jobs:
       ARM_CLIENT_SECRET: ${{secrets.TF_AZ_CLIENT_SECRET}}
       ARM_SUBSCRIPTION_ID: ${{secrets.TF_AZ_SUBSCRIPTION_ID}}
       ARM_TENANT_ID: ${{secrets.TF_AZ_TENANT_ID}}
-      TF_VAR_sms_connection_string: ${{secrets.TF_VAR_SMS_CONNECTION_STRING}}
-      TF_VAR_sms_service_number: ${{secrets.TF_VAR_SMS_SERVICE_NUMBER}}
       TF_VAR_environment: ${{needs.parse.outputs.ref}}
+      TF_VAR_twilio_auth_token: ${{secrets.TWILIO_AUTH_TOKEN}}
 
     defaults:
       run:
@@ -51,7 +50,7 @@ jobs:
     - name: Set up .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.x
+        dotnet-version: 5.0.x
 
     - name: Restore dependencies
       run: dotnet restore src
@@ -60,7 +59,7 @@ jobs:
       run: dotnet test src --verbosity normal
 
     - name: Publish
-      run: dotnet publish src/Group/Group.csproj -c Release -o dist
+      run: dotnet publish src/Group.WebApi/Group.WebApi.csproj -c Release -o dist
 
     # Terraform
     - name: Set up Terraform

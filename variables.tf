@@ -13,14 +13,8 @@ variable "location" {
   description = "Azure region for deployment"
 }
 
-variable "sms_connection_string" {
+variable "twilio_auth_token" {
   type        = string
-  description = "Connection string for SMS client in app"
-  sensitive   = true
-}
-
-variable "sms_service_number" {
-  type        = string
-  description = "Phone number from which SMS client sends messages in app"
+  description = "Twilio auth token"
   sensitive   = true
 }

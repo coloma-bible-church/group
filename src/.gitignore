@@ -1,3 +1,5 @@
 /.vs/
 /.idea/
 *.sln.DotSettings.user
+bin/
+obj/
