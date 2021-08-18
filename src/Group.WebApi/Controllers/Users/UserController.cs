@@ -60,5 +60,14 @@
                 _linkGenerator.GetPathByAction("GetUser", "user", new { id })
             ));
         }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteUser(string id)
+        {
+            if (await _userRepository.ReadAsync(id, CancellationToken) is null)
+                return NotFound();
+            await _userRepository.DeleteAsync(id, CancellationToken);
+            return Ok();
+        }
     }
 }
