@@ -36,6 +36,7 @@ jobs:
       ARM_SUBSCRIPTION_ID: ${{secrets.TF_AZ_SUBSCRIPTION_ID}}
       ARM_TENANT_ID: ${{secrets.TF_AZ_TENANT_ID}}
       TF_VAR_environment: ${{needs.parse.outputs.ref}}
+      TF_VAR_twilio_auth_token: ${{secrets.TWILIO_AUTH_TOKEN}}
 
     defaults:
       run:

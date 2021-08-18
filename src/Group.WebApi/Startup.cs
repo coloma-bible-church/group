@@ -7,6 +7,9 @@ using Microsoft.OpenApi.Models;
 
 namespace Group.WebApi
 {
+    using Auth.Twilio;
+    using Microsoft.AspNetCore.Authorization;
+
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -19,6 +22,19 @@ namespace Group.WebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddApplicationInsightsTelemetry();
+            services.AddAuthentication(options =>
+            {
+                options.AddScheme<TwilioAuthenticationHandler>("TWILIO", null);
+            });
+            services.AddAuthorization(options =>
+            {
+                var twilioPolicy = new AuthorizationPolicyBuilder()
+                    .AddAuthenticationSchemes("TWILIO")
+                    .RequireAuthenticatedUser()
+                    .Build();
+                options.AddPolicy("TWILIO", twilioPolicy);
+            });
             services.AddControllers();
             services.AddSwaggerGen(
                 c =>
@@ -47,6 +63,7 @@ namespace Group.WebApi
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });

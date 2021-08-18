@@ -137,7 +137,8 @@ resource "azurerm_app_service" "default" {
     "FUNCTIONS_WORKER_RUNTIME"       = "dotnet",
     "DB_CONNECTION_STRING"           = element(azurerm_cosmosdb_account.default.connection_strings, 0),
     "DB_DB_ID"                       = azurerm_cosmosdb_sql_database.default.id,
-    "DB_USERS_CONTAINER_ID"          = azurerm_cosmosdb_sql_container.users.id
+    "DB_USERS_CONTAINER_ID"          = azurerm_cosmosdb_sql_container.users.id,
+    "TWILIO_AUTH_TOKEN"              = var.twilio_auth_token
   }
 
   site_config {
