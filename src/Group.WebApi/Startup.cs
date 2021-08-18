@@ -59,8 +59,14 @@ namespace Group.WebApi
             services.AddTransient<CosmosContainerProvider>();
             services.AddTransient(
                 typeof(UserRepository),
-                x => new AzureUserRepository(x.GetRequiredService<CosmosContainerProvider>())
+                x => new AzureUserRepository(
+                    x.GetRequiredService<CosmosContainerProvider>(),
+                    x.GetRequiredService<AzureContactRepository>()
+                )
             );
+            services.AddTransient<AzureContactRepository>(x => new AzureContactRepository(
+                x.GetRequiredService<CosmosContainerProvider>().GetContacts()
+            ));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

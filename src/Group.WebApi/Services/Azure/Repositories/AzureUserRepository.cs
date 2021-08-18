@@ -1,7 +1,6 @@
 ﻿namespace Group.WebApi.Services.Azure.Repositories
 {
     using System;
-    using System.Linq;
     using System.Net;
     using System.Reactive.Linq;
     using System.Reactive.Threading.Tasks;
@@ -16,29 +15,7 @@
     public class AzureUserRepository : UserRepository
     {
         [Serializable]
-        class AzureContactModel
-        {
-            /// <summary>
-            /// The contact value
-            /// </summary>
-            [JsonProperty("id")]
-            public string? Id { get; set; }
-
-            /// <summary>
-            /// The contact kind
-            /// </summary>
-            [JsonProperty("kind")]
-            public string? Kind { get; set; }
-
-            /// <summary>
-            /// The user ID
-            /// </summary>
-            [JsonProperty("userId")]
-            public string? UserId { get; set; }
-        }
-
-        [Serializable]
-        class AzureUserModel
+        public class AzureIdentityModel
         {
             [JsonProperty("id")]
             public string? Id { get; set; }
@@ -62,30 +39,24 @@
         }
 
         readonly CosmosContainerProvider _containerProvider;
+        readonly AzureContactRepository _contactRepository;
 
-        public AzureUserRepository(CosmosContainerProvider containerProvider)
+        public AzureUserRepository(
+            CosmosContainerProvider containerProvider,
+            AzureContactRepository contactRepository)
         {
             _containerProvider = containerProvider;
+            _contactRepository = contactRepository;
         }
 
         public override async Task<string> CreateAsync(UserModel user, CancellationToken cancellationToken)
         {
             // Verify that none of the user's contacts are already in use
-            var contactsContainer = _containerProvider.GetContacts();
-            var contactKeys = user
-                .Contacts
-                .Where(x => x.Kind is not null && x.Value is not null)
-                .Select(x => (x.Value, new PartitionKey(x.Kind)))
-                .ToList();
-            var existingContacts = await contactsContainer.ReadManyItemsAsync<AzureContactModel>(
-                contactKeys,
-                cancellationToken: cancellationToken
-            );
-            if (existingContacts.Count > 0)
+            if (await _contactRepository.CheckAsync(user.Contacts, cancellationToken))
                 throw new Exception("At least one of this user's contacts is already in use");
 
             // Add the user model
-            var userModel = new AzureUserModel
+            var userModel = new AzureIdentityModel
             {
                 Id = Guid.NewGuid().ToString(),
                 Data = user
@@ -97,16 +68,11 @@
             // Add the user's contacts
             foreach (var contact in user.Contacts)
             {
-                if (contact.Kind is null || contact.Value is null)
-                    continue;
-                await contactsContainer.CreateItemAsync(
-                    new AzureContactModel
-                    {
-                        Id = contact.Value,
-                        Kind = contact.Kind,
-                        UserId = userModel.Id
-                    },
-                    cancellationToken: cancellationToken
+                await _contactRepository.CreateAsync(
+                    contact.Kind,
+                    contact.Value,
+                    userModel.Id,
+                    cancellationToken
                 );
             }
 
@@ -119,22 +85,12 @@
                 throw new Exception("This user does not exist");
 
             // Delete all the contacts for this user
-            var contactsContainer = _containerProvider.GetContacts();
-            foreach (var contact in userModel.Contacts)
-            {
-                if (contact.Value is null || contact.Kind is null)
-                    continue;
-                await contactsContainer.DeleteItemAsync<AzureContactModel>(
-                    contact.Value,
-                    new PartitionKey(contact.Kind),
-                    cancellationToken: cancellationToken
-                );
-            }
+            await _contactRepository.DeleteAsync(userModel.Contacts, cancellationToken);
 
             // Delete the user
             await _containerProvider
                 .GetIdentities()
-                .DeleteItemAsync<AzureUserModel>(
+                .DeleteItemAsync<AzureIdentityModel>(
                     id,
                     new PartitionKey(id),
                     cancellationToken: cancellationToken
@@ -173,26 +129,7 @@
 
         public override async Task<string?> GetIdFromContactAsync(
             ContactModel contact,
-            CancellationToken cancellationToken)
-        {
-            if (contact.Kind is null || contact.Value is null)
-                return null;
-            try
-            {
-                var model = await _containerProvider
-                    .GetContacts()
-                    .ReadItemAsync<AzureContactModel>(
-                        contact.Value,
-                        new PartitionKey(contact.Kind),
-                        cancellationToken: cancellationToken
-                    );
-                return model.Resource.UserId;
-            }
-            catch (CosmosException e) when (e.StatusCode == HttpStatusCode.NotFound)
-            {
-                return null;
-            }
-        }
+            CancellationToken cancellationToken) => await _contactRepository.GetIdFromContact(contact, cancellationToken);
 
         public override async Task<string[]> GetIdsAsync(CancellationToken cancellationToken) =>
             await _containerProvider
@@ -212,7 +149,7 @@
             {
                 var response = await _containerProvider
                     .GetIdentities()
-                    .ReadItemAsync<AzureUserModel>(
+                    .ReadItemAsync<AzureIdentityModel>(
                         id,
                         new PartitionKey(id),
                         cancellationToken: cancellationToken
@@ -233,58 +170,17 @@
             if (await ReadAsync(id, cancellationToken) is null)
                 throw new Exception("A user with this ID does not exist");
 
-            // Delete stale contacts
-            var contactsContainer = _containerProvider.GetContacts();
-            var oldContacts = await contactsContainer
-                .GetItemQueryIterator<AzureContactModel>(
-                    new QueryDefinition("select * from c where c.userId = @userId")
-                        .WithParameter("@userId", id)
-                )
-                .ToObservable()
-                .ToList()
-                .ToTask(cancellationToken);
-            var staleContacts = oldContacts
-                .Where(azureContactModel => !model.Contacts.Any(contactModel =>
-                    azureContactModel.Kind == contactModel.Kind
-                    && azureContactModel.Id == contactModel.Value
-                ));
-            foreach (var staleContact in staleContacts)
-            {
-                await contactsContainer.DeleteItemAsync<AzureContactModel>(
-                    staleContact.Id,
-                    new PartitionKey(staleContact.Kind),
-                    cancellationToken: cancellationToken
-                );
-            }
-
-            // Add new contacts
-            var freshContacts = model
-                .Contacts
-                .Where(contactModel => !oldContacts.Any(azureContactModel =>
-                    azureContactModel.Kind == contactModel.Kind
-                    && azureContactModel.Id == contactModel.Value
-                ));
-            foreach (var freshContact in freshContacts)
-            {
-                if (await GetIdFromContactAsync(freshContact, cancellationToken) is not null)
-                    throw new Exception("At least one of the contacts cannot be added because it is already in use by another identity");
-                await contactsContainer
-                    .CreateItemAsync(
-                        new AzureContactModel
-                        {
-                            Id = freshContact.Value,
-                            Kind = freshContact.Kind,
-                            UserId = id
-                        },
-                        cancellationToken: cancellationToken
-                    );
-            }
+            await _contactRepository.UpdateContactsAsync(
+                id,
+                model.Contacts,
+                cancellationToken
+            );
 
             // Update the user
             await _containerProvider
                 .GetIdentities()
                 .UpsertItemAsync(
-                    new AzureUserModel
+                    new AzureIdentityModel
                     {
                         Id = id,
                         Data = model

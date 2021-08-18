@@ -125,7 +125,7 @@ resource "azurerm_cosmosdb_sql_container" "contacts" {
   resource_group_name = azurerm_resource_group.default.name
   account_name        = azurerm_cosmosdb_account.default.name
   database_name       = azurerm_cosmosdb_sql_database.default.name
-  partition_key_path  = "/kind"
+  partition_key_path  = "/id"
 }
 
 resource "azurerm_app_service" "default" {

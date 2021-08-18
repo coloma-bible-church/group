@@ -11,7 +11,8 @@ namespace Group.WebApi.Models
                 Phone = "phone";
         }
 
-        public string? Kind { get; set; }
-        public string? Value { get; set; }
+        public string Kind { get; set; } = Guid.NewGuid().ToString();
+
+        public string Value { get; set; } = Guid.NewGuid().ToString();
     }
 }
