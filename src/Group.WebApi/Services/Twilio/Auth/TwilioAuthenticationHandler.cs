@@ -1,4 +1,4 @@
-﻿namespace Group.WebApi.Auth.Twilio
+﻿namespace Group.WebApi.Services.Twilio.Auth
 {
     using System;
     using System.Net;

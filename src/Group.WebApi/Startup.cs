@@ -7,8 +7,13 @@ using Microsoft.OpenApi.Models;
 
 namespace Group.WebApi
 {
-    using Auth.Twilio;
+    using System.Diagnostics.CodeAnalysis;
     using Microsoft.AspNetCore.Authorization;
+    using Microsoft.Azure.Cosmos;
+    using Repositories.Users;
+    using Services.Azure.Database;
+    using Services.Azure.Repositories;
+    using Services.Twilio.Auth;
 
     public class Startup
     {
@@ -20,6 +25,7 @@ namespace Group.WebApi
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
+        [SuppressMessage("ReSharper", "RedundantTypeArgumentsOfMethod")]
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddApplicationInsightsTelemetry();
@@ -47,6 +53,14 @@ namespace Group.WebApi
                             Version = "v1"
                         });
                 });
+
+            services.AddTransient<CosmosClientFactory>();
+            services.AddSingleton<CosmosClient>(x => x.GetRequiredService<CosmosClientFactory>().Create());
+            services.AddTransient<CosmosContainerProvider>();
+            services.AddTransient(
+                typeof(UserRepository),
+                x => new AzureUserRepository(x.GetRequiredService<CosmosContainerProvider>())
+            );
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -55,9 +69,10 @@ namespace Group.WebApi
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Group.WebApi v1"));
             }
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Group.WebApi v1"));
 
             app.UseHttpsRedirection();
 
