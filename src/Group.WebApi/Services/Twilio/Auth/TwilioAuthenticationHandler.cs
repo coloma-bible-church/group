@@ -7,21 +7,26 @@
     using global::Twilio.AspNet.Core;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.Extensions.Configuration;
 
     public class TwilioAuthenticationHandler : IAuthenticationHandler
     {
+        readonly IConfiguration _configuration;
         string _authToken = null!;
         AuthenticationScheme _scheme = null!;
         HttpContext _context = null!;
+
+        public TwilioAuthenticationHandler(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
 
         public async Task InitializeAsync(AuthenticationScheme scheme, HttpContext context)
         {
             await Task.CompletedTask;
             _scheme = scheme;
             _context = context;
-            _authToken = Environment
-                .GetEnvironmentVariables()
-                ["TWILIO_AUTH_TOKEN"] as string
+            _authToken = _configuration["TWILIO_AUTH_TOKEN"]
                 ?? throw new Exception("Missing TWILIO_AUTH_TOKEN environment variable");
         }
 

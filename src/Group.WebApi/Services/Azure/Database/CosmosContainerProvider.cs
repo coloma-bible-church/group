@@ -2,33 +2,35 @@
 {
     using System;
     using Microsoft.Azure.Cosmos;
+    using Microsoft.Extensions.Configuration;
 
     public class CosmosContainerProvider
     {
         readonly CosmosClient _client;
+        readonly IConfiguration _configuration;
 
-        public CosmosContainerProvider(CosmosClient client)
+        public CosmosContainerProvider(
+            CosmosClient client,
+            IConfiguration configuration)
         {
             _client = client;
+            _configuration = configuration;
         }
 
-        static string GetDatabaseId() => GetEnvironmentVariable("DB_DB_ID");
+        string GetDatabaseId() => GetConfigurationVariable("DB_DB_ID");
 
-        static string GetEnvironmentVariable(string name) =>
-            Environment
-                .GetEnvironmentVariables()[name]
-                as string ?? throw new Exception($"Cannot find {name} environment variable");
+        string GetConfigurationVariable(string name) => _configuration[name] ?? throw new Exception($"Cannot find {name} configuration variable");
 
         public Container GetIdentities() =>
             _client.GetContainer(
                 GetDatabaseId(),
-                GetEnvironmentVariable("DB_CONTAINER_IDENTITIES")
+                GetConfigurationVariable("DB_CONTAINER_IDENTITIES")
             );
 
         public Container GetContacts() =>
             _client.GetContainer(
                 GetDatabaseId(),
-                GetEnvironmentVariable("DB_CONTAINER_CONTACTS")
+                GetConfigurationVariable("DB_CONTAINER_CONTACTS")
             );
     }
 }
