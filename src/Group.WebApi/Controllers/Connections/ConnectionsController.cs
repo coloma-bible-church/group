@@ -143,13 +143,15 @@
             // Update the message model with this user's info
             messageModel.From = fromIdentity.Name;
 
+            _logger.LogInformation($"Received \"{kind}\" message from \"{fromId}\"");
+
             // Send this message to all other users
             await BroadcastMessageAsync(messageModel, fromId);
 
             return Ok();
         }
 
-        async Task BroadcastMessageAsync(MessageModel messageModel, string? fromId)
+        async Task BroadcastMessageAsync(MessageModel messageModel, string fromId)
         {
             var userIds = await _usersRepository.GetIdsAsync(CancellationToken);
             var connectionKindToSendDetailsMap = new Dictionary<string, (string SendEndpoint, string ConnectionSecret)>();
@@ -210,19 +212,18 @@
                         },
                         CancellationToken
                     );
-                    if (response.IsSuccessStatusCode)
-                        break; // That worked; no need to try another contact method for this person
 
+                    var description = $"\"{contactKind}\" message from \"{fromId}\" to \"{userId}\"";
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _logger.LogInformation($"Sent {description}");
+                        break; // That worked; no need to try another contact method for this person
+                    }
+                    _logger.LogWarning($"Failed to send {description}. {response.StatusCode}: \"{response.ReasonPhrase}\"");
                     if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                     {
                         // Something is wrong with authorization for this connection. Don't try it again
-                        _logger.LogWarning($"Not authorized to POST to \"{sendDetails.SendEndpoint}\"");
                         badConnectionKinds.Add(contactKind);
-                    }
-                    else
-                    {
-                        // Something (temporarily?) went wrong
-                        _logger.LogWarning($"Failed to POST message to \"{sendDetails.SendEndpoint}\". Status code = {response.StatusCode}");
                     }
                 }
             }
