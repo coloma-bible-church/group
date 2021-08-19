@@ -128,6 +128,14 @@ resource "azurerm_cosmosdb_sql_container" "contacts" {
   partition_key_path  = "/id"
 }
 
+resource "azurerm_cosmosdb_sql_container" "connections" {
+  name                = "${var.project}-${var.environment}-cosmosdb-sql-container-connections"
+  resource_group_name = azurerm_resource_group.default.name
+  account_name        = azurerm_cosmosdb_account.default.name
+  database_name       = azurerm_cosmosdb_sql_database.default.name
+  partition_key_path  = "/id"
+}
+
 resource "azurerm_app_service" "default" {
   name                = "${var.project}-${var.environment}-app-service"
   location            = var.location
@@ -141,6 +149,7 @@ resource "azurerm_app_service" "default" {
     "DB_DB_ID"                       = azurerm_cosmosdb_sql_database.default.name,
     "DB_CONTAINER_IDENTITIES"        = azurerm_cosmosdb_sql_container.identities.name,
     "DB_CONTAINER_CONTACTS"          = azurerm_cosmosdb_sql_container.contacts.name,
+    "DB_CONTAINER_CONNECTIONS"       = azurerm_cosmosdb_sql_container.connections.name,
     "TWILIO_AUTH_TOKEN"              = var.twilio_auth_token,
     "SERVER_SECRET"                  = var.server_secret
   }

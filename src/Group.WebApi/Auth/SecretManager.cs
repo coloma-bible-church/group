@@ -2,7 +2,6 @@
 {
     using System;
     using System.Buffers;
-    using System.Diagnostics;
     using System.Security.Cryptography;
 
     public class SecretManager
@@ -39,7 +38,7 @@
                     buffer,
                     out var numBytesWritten))
                     return false;
-                return numBytesWritten == buffer.Length && Compare(buffer, hash.Span);
+                return numBytesWritten == buffer.Length && SecureCompare.Compare(buffer, hash.Span);
             }
             finally
             {
@@ -52,18 +51,7 @@
             using var hmac = _genHmac();
             if (secret.Length != hmac.HashSize / 8)
                 return false;
-            return Compare(hmac.Key, secret.Span);
-        }
-
-        static bool Compare(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
-        {
-            Debug.Assert(a.Length == b.Length);
-            var same = true;
-            for (var i = 0; i < a.Length; ++i)
-            {
-                same &= a[i] == b[i];
-            }
-            return same;
+            return SecureCompare.Compare(hmac.Key, secret.Span);
         }
     }
 }

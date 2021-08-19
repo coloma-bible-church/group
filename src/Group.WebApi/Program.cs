@@ -4,12 +4,17 @@ using Microsoft.Extensions.Hosting;
 namespace Group.WebApi
 {
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
 
     public class Program
     {
         public static void Main(string[] args)
         {
             CreateHostBuilder(args)
+                .ConfigureLogging(builder =>
+                {
+                    builder.AddApplicationInsights();
+                })
                 .ConfigureAppConfiguration(builder =>
                 {
                     builder.AddUserSecrets<Program>();

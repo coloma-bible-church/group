@@ -27,6 +27,12 @@
                 GetConfigurationVariable("DB_CONTAINER_IDENTITIES")
             );
 
+        public Container GetConnections() =>
+            _client.GetContainer(
+                GetDatabaseId(),
+                GetConfigurationVariable("DB_CONTAINER_CONNECTIONS")
+            );
+
         public Container GetContacts() =>
             _client.GetContainer(
                 GetDatabaseId(),

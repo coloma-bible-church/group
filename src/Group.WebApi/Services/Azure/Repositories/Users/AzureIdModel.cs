@@ -1,4 +1,4 @@
-﻿namespace Group.WebApi.Services.Azure.Repositories
+﻿namespace Group.WebApi.Services.Azure.Repositories.Users
 {
     using System;
     using Newtonsoft.Json;

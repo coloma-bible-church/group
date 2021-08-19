@@ -7,6 +7,7 @@
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Http;
+    using Parsing;
 
     public class ServerSecretAuthenticationHandler : IAuthenticationHandler
     {
@@ -49,7 +50,7 @@
                 if (request.HasFormContentType
                     && request.Form.TryGetValue(_scheme.Name, out var secretValues)
                     && secretValues.FirstOrDefault() is {} secretValue
-                    && FromBase64String(secretValue) is {} secretBytes
+                    && Base64Helpers.TryParse(secretValue) is {} secretBytes
                     && _secretManager.CheckRaw(secretBytes))
                 {
                     (salt, hash) = _secretManager.Create();
@@ -101,19 +102,7 @@
         {
             if (!_context.Request.Cookies.TryGetValue(cookieName, out var cookieValue) || cookieValue is null)
                 return null;
-            return FromBase64String(cookieValue);
-        }
-
-        static byte[]? FromBase64String(string value)
-        {
-            try
-            {
-                return Convert.FromBase64String(value);
-            }
-            catch
-            {
-                return null;
-            }
+            return Base64Helpers.TryParse(cookieValue);
         }
 
         public async Task ForbidAsync(AuthenticationProperties? properties)
