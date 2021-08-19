@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Runtime.CompilerServices;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -105,6 +106,32 @@
                     new PartitionKey(contactId),
                     cancellationToken: cancellationToken
                 );
+            }
+        }
+
+        public async IAsyncEnumerable<ContactModel> GetContactsAsync(string userId, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var contact in _container
+                .GetItemQueryIterator<AzureContactModel>(
+                    new QueryDefinition("select * from c where c.userId = @userId")
+                        .WithParameter("@userId", userId)
+                )
+                .ToAsyncEnumerable(cancellationToken))
+            {
+                if (!AzureContactModel.TryParseId(contact.Id, out var kind, out var value))
+                {
+                    await _container.DeleteItemAsync<AzureContactModel>(
+                        contact.Id,
+                        new PartitionKey(contact.Id),
+                        cancellationToken: cancellationToken
+                    );
+                    continue;
+                }
+                yield return new ContactModel
+                {
+                    Kind = kind,
+                    Value = value
+                };
             }
         }
 

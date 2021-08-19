@@ -1,6 +1,5 @@
 ﻿namespace Group.WebApi.Controllers.Contacts
 {
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
@@ -25,28 +24,9 @@
 
         CancellationToken CancellationToken => HttpContext.RequestAborted;
 
-        [HttpGet]
-        public async Task<ActionResult> GetKinds()
+        [HttpGet("{kind}/{value}")]
+        public async Task<ActionResult> Get(string kind, string value)
         {
-            var kinds = await _userRepository.GetContactKindsAsync(CancellationToken);
-            return Ok(kinds.Select(kind => new ResourceModel(
-                kind,
-                _linkGenerator.GetPathByAction("Get", "contacts", new { kind })
-            )));
-        }
-
-        [HttpGet("{kind}")]
-        public async Task<ActionResult> Get(string kind, [FromQuery] string? value = null)
-        {
-            if (value is null)
-            {
-                var contacts = await _userRepository.GetContactsByKind(kind, CancellationToken);
-                return Ok(contacts.Select(contact => new ResourceModel(
-                    contact,
-                    _linkGenerator.GetPathByAction("Get", "contacts", new { kind, value = contact })
-                )));
-            }
-
             var id = await _userRepository.GetIdFromContactAsync(
                 new ContactModel
                 {

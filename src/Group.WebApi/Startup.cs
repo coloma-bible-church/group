@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
@@ -17,13 +16,6 @@ namespace Group.WebApi
 
     public class Startup
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
-
-        public IConfiguration Configuration { get; }
-
         // This method gets called by the runtime. Use this method to add services to the container.
         [SuppressMessage("ReSharper", "RedundantTypeArgumentsOfMethod")]
         public void ConfigureServices(IServiceCollection services)
@@ -57,16 +49,23 @@ namespace Group.WebApi
             services.AddTransient<CosmosClientFactory>();
             services.AddSingleton<CosmosClient>(x => x.GetRequiredService<CosmosClientFactory>().Create());
             services.AddTransient<CosmosContainerProvider>();
-            services.AddTransient(
-                typeof(UserRepository),
+            services.AddTransient<AzureUserRepository>(
                 x => new AzureUserRepository(
                     x.GetRequiredService<CosmosContainerProvider>(),
                     x.GetRequiredService<AzureContactRepository>()
                 )
             );
-            services.AddTransient<AzureContactRepository>(x => new AzureContactRepository(
-                x.GetRequiredService<CosmosContainerProvider>().GetContacts()
-            ));
+            services.AddTransient(
+                typeof(UserRepository),
+                x => x.GetRequiredService<AzureUserRepository>()
+            );
+            services.AddTransient<AzureContactRepository>(x =>
+            {
+                var provider = x.GetRequiredService<CosmosContainerProvider>();
+                return new AzureContactRepository(
+                    provider.GetContacts()
+                );
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

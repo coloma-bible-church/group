@@ -1,6 +1,8 @@
 ﻿namespace Group.WebApi.Services.Azure.Repositories
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
     using System.Net;
     using System.Reactive.Linq;
     using System.Reactive.Threading.Tasks;
@@ -9,35 +11,10 @@
     using Database;
     using Microsoft.Azure.Cosmos;
     using Models;
-    using Newtonsoft.Json;
     using WebApi.Repositories.Users;
 
     public class AzureUserRepository : UserRepository
     {
-        [Serializable]
-        public class AzureIdentityModel
-        {
-            [JsonProperty("id")]
-            public string? Id { get; set; }
-
-            [JsonProperty("data")]
-            public UserModel? Data { get; set; }
-        }
-
-        [Serializable]
-        class AzureIdModel
-        {
-            [JsonProperty("id")]
-            public string? Id { get; set; }
-        }
-
-        [Serializable]
-        class AzureKindModel
-        {
-            [JsonProperty("kind")]
-            public string? Kind { get; set; }
-        }
-
         readonly CosmosContainerProvider _containerProvider;
         readonly AzureContactRepository _contactRepository;
 
@@ -59,7 +36,7 @@
             var userModel = new AzureIdentityModel
             {
                 Id = Guid.NewGuid().ToString(),
-                Data = user
+                Name = user.Name
             };
             await _containerProvider
                 .GetIdentities()
@@ -97,36 +74,6 @@
                 );
         }
 
-        public override async Task<string[]> GetContactKindsAsync(CancellationToken cancellationToken)
-        {
-            var contactsContainer = _containerProvider.GetContacts();
-            return await contactsContainer
-                .GetItemQueryIterator<AzureKindModel>(
-                    new QueryDefinition("select c.kind from c")
-                )
-                .ToObservable()
-                .Where(x => x.Kind is not null)
-                .Select(x => x.Kind!)
-                .Distinct()
-                .ToArray()
-                .ToTask(cancellationToken);
-        }
-
-        public override async Task<string[]> GetContactsByKind(string kind, CancellationToken cancellationToken)
-        {
-            var contactsContainer = _containerProvider.GetContacts();
-            return await contactsContainer
-                .GetItemQueryIterator<AzureIdModel>(
-                    new QueryDefinition("select c.id from c where c.kind = @kind")
-                        .WithParameter("@kind", kind)
-                )
-                .ToObservable()
-                .Where(x => x.Id is not null)
-                .Select(x => x.Id!)
-                .ToArray()
-                .ToTask(cancellationToken);
-        }
-
         public override async Task<string?> GetIdFromContactAsync(
             ContactModel contact,
             CancellationToken cancellationToken) => await _contactRepository.GetIdFromContact(contact, cancellationToken);
@@ -143,18 +90,32 @@
                 .ToArray()
                 .ToTask(cancellationToken);
 
+        [SuppressMessage("ReSharper", "MethodSupportsCancellation")]
         public override async Task<UserModel?> ReadAsync(string id, CancellationToken cancellationToken)
         {
             try
             {
-                var response = await _containerProvider
-                    .GetIdentities()
+                var identitiesContainer = _containerProvider.GetIdentities();
+                var response = await identitiesContainer
                     .ReadItemAsync<AzureIdentityModel>(
                         id,
                         new PartitionKey(id),
                         cancellationToken: cancellationToken
                     );
-                return response.Resource.Data;
+                var identityModel = response.Resource;
+                if (identityModel.Name is null)
+                {
+                    identityModel.Name = id;
+                    await identitiesContainer.UpsertItemAsync(identityModel, cancellationToken: cancellationToken);
+                }
+                var contacts = await _contactRepository
+                    .GetContactsAsync(id, cancellationToken)
+                    .ToArrayAsync();
+                return new UserModel
+                {
+                    Contacts = contacts,
+                    Name = identityModel.Name
+                };
             }
             catch (CosmosException e) when (e.StatusCode == HttpStatusCode.NotFound)
             {
@@ -183,7 +144,7 @@
                     new AzureIdentityModel
                     {
                         Id = id,
-                        Data = model
+                        Name = model.Name
                     },
                     cancellationToken: cancellationToken
                 );
