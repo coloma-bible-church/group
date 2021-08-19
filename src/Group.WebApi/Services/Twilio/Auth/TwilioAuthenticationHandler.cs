@@ -33,12 +33,12 @@
         public async Task<AuthenticateResult> AuthenticateAsync()
         {
             await Task.CompletedTask;
-            if (!new RequestValidationHelper().IsValidRequest(_context, _authToken))
+            if (!new RequestValidationHelper().IsValidRequest(_context, _authToken, false))
                 return AuthenticateResult.NoResult();
             return AuthenticateResult.Success(new AuthenticationTicket(
                 new GenericPrincipal(
-                    new GenericIdentity("Twilio", _scheme.Name),
-                    Array.Empty<string>()
+                    new GenericIdentity(Guid.NewGuid().ToString(), _scheme.Name),
+                    null
                 ),
                 _scheme.Name
             ));
@@ -48,6 +48,7 @@
         {
             await Task.CompletedTask;
             _context.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+            _context.Response.Headers["WWW-Authenticate"] = _scheme.Name;
         }
 
         public async Task ForbidAsync(AuthenticationProperties? properties)
