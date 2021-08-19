@@ -68,7 +68,7 @@
             return Ok(connectionModel);
         }
 
-        [HttpPost("{kind}")]
+        [HttpPut("{kind}")]
         public async Task<ActionResult> CreateConnection(string kind, ConnectionRequest request)
         {
             if (!Uri.TryCreate(request.ConnectionEndpoint, UriKind.Absolute, out var connectionEndpointUri)
@@ -113,7 +113,7 @@
             return Ok();
         }
 
-        [HttpPost("{kind}/messages/new")]
+        [HttpPost("{kind}/messages")]
         [AllowAnonymous]
         public async Task<ActionResult> ReceiveMessage(
             string kind,

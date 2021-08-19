@@ -6,8 +6,6 @@
 
     public abstract class UsersRepository
     {
-        public abstract Task<string> CreateAsync(UserModel model, CancellationToken cancellationToken);
-
         public abstract Task DeleteAsync(string id, CancellationToken cancellationToken);
 
         public abstract Task<string?> GetIdFromContactAsync(ContactModel contact, CancellationToken cancellationToken);
@@ -16,7 +14,7 @@
 
         public abstract Task<UserModel?> ReadAsync(string id, CancellationToken cancellationToken);
 
-        public abstract Task UpdateAsync(
+        public abstract Task UpsertAsync(
             string id,
             UserModel model,
             CancellationToken cancellationToken);

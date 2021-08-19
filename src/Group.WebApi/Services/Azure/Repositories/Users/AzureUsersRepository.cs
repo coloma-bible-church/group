@@ -26,36 +26,6 @@
             _contactRepository = contactRepository;
         }
 
-        public override async Task<string> CreateAsync(UserModel user, CancellationToken cancellationToken)
-        {
-            // Verify that none of the user's contacts are already in use
-            if (await _contactRepository.CheckAsync(user.Contacts, cancellationToken))
-                throw new Exception("At least one of this user's contacts is already in use");
-
-            // Add the user model
-            var userModel = new AzureIdentityModel
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = user.Name
-            };
-            await _containerProvider
-                .GetIdentities()
-                .CreateItemAsync(userModel, cancellationToken: cancellationToken);
-
-            // Add the user's contacts
-            foreach (var contact in user.Contacts)
-            {
-                await _contactRepository.CreateAsync(
-                    contact.Kind,
-                    contact.Value,
-                    userModel.Id,
-                    cancellationToken
-                );
-            }
-
-            return userModel.Id;
-        }
-
         public override async Task DeleteAsync(string id, CancellationToken cancellationToken)
         {
             if (await ReadAsync(id, cancellationToken) is not {} userModel)
@@ -123,14 +93,12 @@
             }
         }
 
-        public override async Task UpdateAsync(
+        public override async Task UpsertAsync(
             string id,
             UserModel model,
             CancellationToken cancellationToken)
         {
-            if (await ReadAsync(id, cancellationToken) is null)
-                throw new Exception("A user with this ID does not exist");
-
+            // Update the user's contacts
             await _contactRepository.UpdateContactsAsync(
                 id,
                 model.Contacts,

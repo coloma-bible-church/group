@@ -46,21 +46,11 @@
             return Ok(userModel);
         }
 
-        [HttpPost("{id}")]
-        public async Task<ActionResult> UpdateUser(string id, UserModel user)
+        [HttpPut("{id}")]
+        public async Task<ActionResult> PutUser(string id, UserModel user)
         {
-            await _usersRepository.UpdateAsync(id, user, CancellationToken);
+            await _usersRepository.UpsertAsync(id, user, CancellationToken);
             return Ok();
-        }
-
-        [HttpPut]
-        public async Task<ActionResult> AddUser(UserModel user)
-        {
-            var id = await _usersRepository.CreateAsync(user, CancellationToken);
-            return Ok(new ResourceModel(
-                id,
-                _linkGenerator.GetPathByAction("GetUser", "users", new { id })
-            ));
         }
 
         [HttpDelete("{id}")]
