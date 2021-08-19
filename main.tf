@@ -35,11 +35,6 @@ resource "azurerm_storage_container" "app" {
   storage_account_name = azurerm_storage_account.default.name
 }
 
-resource "azurerm_storage_container" "dead" {
-  name                 = "${var.project}-${var.environment}-storage-container-dead"
-  storage_account_name = azurerm_storage_account.default.name
-}
-
 resource "azurerm_application_insights" "default" {
   name                = "${var.project}-${var.environment}-application-insights"
   location            = var.location
@@ -74,7 +69,7 @@ resource "azurerm_storage_blob" "default" {
   source                 = data.archive_file.default.output_path
 }
 
-data "azurerm_storage_account_blob_container_sas" "default" {
+data "azurerm_storage_account_blob_container_sas" "app" {
   connection_string = azurerm_storage_account.default.primary_connection_string
   container_name    = azurerm_storage_container.app.name
 
@@ -117,8 +112,16 @@ resource "azurerm_cosmosdb_sql_database" "default" {
   account_name        = azurerm_cosmosdb_account.default.name
 }
 
-resource "azurerm_cosmosdb_sql_container" "users" {
-  name                = "${var.project}-${var.environment}-cosmosdb-sql-container-users"
+resource "azurerm_cosmosdb_sql_container" "identities" {
+  name                = "${var.project}-${var.environment}-cosmosdb-sql-container-identities"
+  resource_group_name = azurerm_resource_group.default.name
+  account_name        = azurerm_cosmosdb_account.default.name
+  database_name       = azurerm_cosmosdb_sql_database.default.name
+  partition_key_path  = "/id"
+}
+
+resource "azurerm_cosmosdb_sql_container" "contacts" {
+  name                = "${var.project}-${var.environment}-cosmosdb-sql-container-contacts"
   resource_group_name = azurerm_resource_group.default.name
   account_name        = azurerm_cosmosdb_account.default.name
   database_name       = azurerm_cosmosdb_sql_database.default.name
@@ -132,13 +135,20 @@ resource "azurerm_app_service" "default" {
   app_service_plan_id = azurerm_app_service_plan.default.id
 
   app_settings = {
-    "WEBSITE_RUN_FROM_PACKAGE"       = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.default.sas}",
+    "WEBSITE_RUN_FROM_PACKAGE"       = "https://${azurerm_storage_account.default.name}.blob.core.windows.net/${azurerm_storage_container.app.name}/${azurerm_storage_blob.default.name}${data.azurerm_storage_account_blob_container_sas.app.sas}",
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.default.instrumentation_key,
     "FUNCTIONS_WORKER_RUNTIME"       = "dotnet",
-    "DB_CONNECTION_STRING"           = element(azurerm_cosmosdb_account.default.connection_strings, 0),
-    "DB_DB_ID"                       = azurerm_cosmosdb_sql_database.default.id,
-    "DB_USERS_CONTAINER_ID"          = azurerm_cosmosdb_sql_container.users.id,
-    "TWILIO_AUTH_TOKEN"              = var.twilio_auth_token
+    "DB_DB_ID"                       = azurerm_cosmosdb_sql_database.default.name,
+    "DB_CONTAINER_IDENTITIES"        = azurerm_cosmosdb_sql_container.identities.name,
+    "DB_CONTAINER_CONTACTS"          = azurerm_cosmosdb_sql_container.contacts.name,
+    "TWILIO_AUTH_TOKEN"              = var.twilio_auth_token,
+    "SERVER_SECRET"                  = var.server_secret
+  }
+
+  connection_string {
+    name  = "cosmos"
+    type  = "SQLAzure"
+    value = element(azurerm_cosmosdb_account.default.connection_strings, 0)
   }
 
   site_config {
