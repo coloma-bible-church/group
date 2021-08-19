@@ -18,3 +18,9 @@ variable "twilio_auth_token" {
   description = "Twilio auth token"
   sensitive   = true
 }
+
+variable "server_secret" {
+  type        = string
+  description = "Secret key for the server"
+  sensitive   = true
+}

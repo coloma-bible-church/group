@@ -2,6 +2,7 @@
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Routing;
     using Models;
@@ -9,16 +10,17 @@
 
     [ApiController]
     [Route("api/v1/contacts")]
+    [Authorize("SECRET")]
     public class ContactsController : ControllerBase
     {
-        readonly UserRepository _userRepository;
+        readonly UsersRepository _usersRepository;
         readonly LinkGenerator _linkGenerator;
 
         public ContactsController(
-            UserRepository userRepository,
+            UsersRepository usersRepository,
             LinkGenerator linkGenerator)
         {
-            _userRepository = userRepository;
+            _usersRepository = usersRepository;
             _linkGenerator = linkGenerator;
         }
 
@@ -27,7 +29,7 @@
         [HttpGet("{kind}/{value}")]
         public async Task<ActionResult> Get(string kind, string value)
         {
-            var id = await _userRepository.GetIdFromContactAsync(
+            var id = await _usersRepository.GetIdFromContactAsync(
                 new ContactModel
                 {
                     Kind = kind,
@@ -39,7 +41,7 @@
                 return NotFound();
             return Ok(new ResourceModel(
                 id,
-                _linkGenerator.GetPathByAction("GetUser", "user", new { id })
+                _linkGenerator.GetPathByAction("GetUser", "users", new { id })
             ));
         }
     }

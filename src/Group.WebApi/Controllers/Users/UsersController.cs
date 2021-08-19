@@ -3,6 +3,7 @@
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Routing;
     using Models;
@@ -10,16 +11,17 @@
 
     [ApiController]
     [Route("api/v1/users")]
-    public class UserController : ControllerBase
+    [Authorize("SECRET")]
+    public class UsersController : ControllerBase
     {
-        readonly UserRepository _userRepository;
+        readonly UsersRepository _usersRepository;
         readonly LinkGenerator _linkGenerator;
 
-        public UserController(
-            UserRepository userRepository,
+        public UsersController(
+            UsersRepository usersRepository,
             LinkGenerator linkGenerator)
         {
-            _userRepository = userRepository;
+            _usersRepository = usersRepository;
             _linkGenerator = linkGenerator;
         }
 
@@ -28,17 +30,17 @@
         [HttpGet]
         public async Task<ActionResult> GetAll()
         {
-            var ids = await _userRepository.GetIdsAsync(CancellationToken);
+            var ids = await _usersRepository.GetIdsAsync(CancellationToken);
             return Ok(ids.Select(id => new ResourceModel(
                 id,
-                _linkGenerator.GetPathByAction("GetUser", "user", new { id })
+                _linkGenerator.GetPathByAction("GetUser", "users", new { id })
             )));
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult> GetUser(string id)
         {
-            var userModel = await _userRepository.ReadAsync(id, CancellationToken);
+            var userModel = await _usersRepository.ReadAsync(id, CancellationToken);
             if (userModel is null)
                 return NotFound();
             return Ok(userModel);
@@ -47,26 +49,26 @@
         [HttpPost("{id}")]
         public async Task<ActionResult> UpdateUser(string id, UserModel user)
         {
-            await _userRepository.UpdateAsync(id, user, CancellationToken);
+            await _usersRepository.UpdateAsync(id, user, CancellationToken);
             return Ok();
         }
 
         [HttpPut]
         public async Task<ActionResult> AddUser(UserModel user)
         {
-            var id = await _userRepository.CreateAsync(user, CancellationToken);
+            var id = await _usersRepository.CreateAsync(user, CancellationToken);
             return Ok(new ResourceModel(
                 id,
-                _linkGenerator.GetPathByAction("GetUser", "user", new { id })
+                _linkGenerator.GetPathByAction("GetUser", "users", new { id })
             ));
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteUser(string id)
         {
-            if (await _userRepository.ReadAsync(id, CancellationToken) is null)
+            if (await _usersRepository.ReadAsync(id, CancellationToken) is null)
                 return NotFound();
-            await _userRepository.DeleteAsync(id, CancellationToken);
+            await _usersRepository.DeleteAsync(id, CancellationToken);
             return Ok();
         }
     }

@@ -11,5 +11,8 @@
         {
             return Redirect("/swagger");
         }
+
+        [HttpGet("login")]
+        public string GetLogin() => "Hello, world!";
     }
 }

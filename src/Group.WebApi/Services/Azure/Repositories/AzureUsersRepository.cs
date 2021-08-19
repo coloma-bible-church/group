@@ -13,12 +13,12 @@
     using Models;
     using WebApi.Repositories.Users;
 
-    public class AzureUserRepository : UserRepository
+    public class AzureUsersRepository : UsersRepository
     {
         readonly CosmosContainerProvider _containerProvider;
         readonly AzureContactRepository _contactRepository;
 
-        public AzureUserRepository(
+        public AzureUsersRepository(
             CosmosContainerProvider containerProvider,
             AzureContactRepository contactRepository)
         {

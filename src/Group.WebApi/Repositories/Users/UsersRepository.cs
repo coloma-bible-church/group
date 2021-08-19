@@ -4,7 +4,7 @@
     using System.Threading.Tasks;
     using Models;
 
-    public abstract class UserRepository : IRepository<UserModel>
+    public abstract class UsersRepository
     {
         public abstract Task<string> CreateAsync(UserModel model, CancellationToken cancellationToken);
 

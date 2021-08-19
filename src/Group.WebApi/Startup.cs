@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 namespace Group.WebApi
 {
     using System.Diagnostics.CodeAnalysis;
+    using Auth;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.Azure.Cosmos;
     using Repositories.Users;
@@ -24,14 +25,19 @@ namespace Group.WebApi
             services.AddAuthentication(options =>
             {
                 options.AddScheme<TwilioAuthenticationHandler>("TWILIO", null);
+                options.AddScheme<ServerSecretAuthenticationHandler>("SECRET", null);
             });
             services.AddAuthorization(options =>
             {
-                var twilioPolicy = new AuthorizationPolicyBuilder()
-                    .AddAuthenticationSchemes("TWILIO")
+                options.AddPolicy("TWILIO", new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
-                    .Build();
-                options.AddPolicy("TWILIO", twilioPolicy);
+                    .AddAuthenticationSchemes("TWILIO")
+                    .Build());
+
+                options.AddPolicy("SECRET", new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .AddAuthenticationSchemes("SECRET")
+                    .Build());
             });
             services.AddControllers();
             services.AddSwaggerGen(
@@ -49,15 +55,15 @@ namespace Group.WebApi
             services.AddTransient<CosmosClientFactory>();
             services.AddSingleton<CosmosClient>(x => x.GetRequiredService<CosmosClientFactory>().Create());
             services.AddTransient<CosmosContainerProvider>();
-            services.AddTransient<AzureUserRepository>(
-                x => new AzureUserRepository(
+            services.AddTransient<AzureUsersRepository>(
+                x => new AzureUsersRepository(
                     x.GetRequiredService<CosmosContainerProvider>(),
                     x.GetRequiredService<AzureContactRepository>()
                 )
             );
             services.AddTransient(
-                typeof(UserRepository),
-                x => x.GetRequiredService<AzureUserRepository>()
+                typeof(UsersRepository),
+                x => x.GetRequiredService<AzureUsersRepository>()
             );
             services.AddTransient<AzureContactRepository>(x =>
             {
@@ -66,6 +72,8 @@ namespace Group.WebApi
                     provider.GetContacts()
                 );
             });
+            services.AddTransient<SecretManagerFactory>();
+            services.AddSingleton<SecretManager>(x => x.GetRequiredService<SecretManagerFactory>().Create());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
