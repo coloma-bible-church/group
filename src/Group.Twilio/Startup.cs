@@ -43,7 +43,13 @@ namespace Group.Twilio
                 );
             });
 
-            services.AddControllers();
+            services
+                .AddControllers(options =>
+                {
+                    options.RespectBrowserAcceptHeader = true;
+                    options.ReturnHttpNotAcceptable = true;
+                })
+                .AddXmlSerializerFormatters();
             services.AddSwaggerGen(
                 c =>
                 {

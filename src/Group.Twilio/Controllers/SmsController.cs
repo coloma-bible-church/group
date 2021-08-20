@@ -140,7 +140,7 @@
         [Authorize("TWILIO")]
         [Authorize("SECRET")]
         [HttpPost("twilio")]
-        public async Task<ActionResult> ReceiveFromTwilio(
+        public async Task<IActionResult> ReceiveFromTwilio(
             [FromForm] SmsRequest request,
             [FromHeader(Name = SecretHeaderAuthenticationHandler.HeaderName)] string? secret)
         {
@@ -164,9 +164,9 @@
             var issueGuid = await _connection.SendAsync(message, request.From, CancellationToken);
             if (issueGuid is not null)
                 return Problem($"There was a problem passing the message along. Check the logs for issue {issueGuid}");
-            return Ok(new TwiMLResult(
+            return new TwiMLResult(
                 new MessagingResponse()
-            ));
+            );
         }
     }
 }
