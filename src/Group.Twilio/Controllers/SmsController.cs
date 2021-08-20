@@ -15,6 +15,7 @@
     using global::Twilio.Clients;
     using global::Twilio.Rest.Api.V2010.Account;
     using global::Twilio.TwiML;
+    using global::Twilio.TwiML.Messaging;
     using global::Twilio.Types;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
@@ -166,6 +167,7 @@
                 return Problem($"There was a problem passing the message along. Check the logs for issue {issueGuid}");
             return new TwiMLResult(
                 new MessagingResponse()
+                    .Append(new Body("👍"))
             );
         }
     }
