@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>9.0</LangVersion>
+      <UserSecretsId>41d7a1e6-258f-41e2-a37e-7cf51e4fa6d5</UserSecretsId>
+  </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" />
+        <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.18.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.5" />
+        <PackageReference Include="System.Linq.Async" Version="5.0.0" />
+        <PackageReference Include="Twilio" Version="5.65.0" />
+        <PackageReference Include="Twilio.AspNet.Core" Version="5.37.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Group.Common\Group.Common.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -36,8 +36,12 @@ jobs:
       ARM_SUBSCRIPTION_ID: ${{secrets.TF_AZ_SUBSCRIPTION_ID}}
       ARM_TENANT_ID: ${{secrets.TF_AZ_TENANT_ID}}
       TF_VAR_environment: ${{needs.parse.outputs.ref}}
-      TF_VAR_twilio_auth_token: ${{secrets.TWILIO_AUTH_TOKEN}}
       TF_VAR_server_secret: ${{secrets.SERVER_SECRET}}
+      TF_VAR_twilio_account_sid: ${{secrets.TWILIO_ACCOUNT_SID}}
+      TF_VAR_twilio_auth_token: ${{secrets.TWILIO_AUTH_TOKEN}}
+      TF_VAR_twilio_phone_number: ${{secrets.TWILIO_PHONE_NUMBER}}
+      TF_VAR_twilio_connection_secret: ${{secrets.TWILIO_CONNECTION_SECRET}}
+      TF_VAR_twilio_server_secret: ${{secrets.TWILIO_SERVER_SECRET}}
 
     defaults:
       run:
@@ -59,8 +63,11 @@ jobs:
     - name: Test
       run: dotnet test src --verbosity normal
 
-    - name: Publish
-      run: dotnet publish src/Group.WebApi/Group.WebApi.csproj -c Release -o dist
+    - name: Publish Group.Hub
+      run: dotnet publish src/Group.Hub/Group.Hub.csproj -c Release -o dist/hub
+
+    - name: Publish Group.Twilio
+      run: dotnet publish src/Group.Twilio/Group.Twilio.csproj -c Release -o dist/twilio
 
     # Terraform
     - name: Set up Terraform
@@ -81,3 +88,10 @@ jobs:
     - name: Terraform Apply
       if: github.event_name == 'push'
       run: terraform apply -auto-approve
+
+    # Artifacts
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: artifacts
+        path: artifacts
