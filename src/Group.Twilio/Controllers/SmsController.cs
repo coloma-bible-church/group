@@ -33,8 +33,11 @@
         readonly ILogger<SmsController> _logger;
         readonly IConfiguration _configuration;
 
-        static readonly HashSet<MessageResource.StatusEnum> ErrorStatuses = new()
+        static readonly HashSet<MessageResource.StatusEnum> FinishedStatuses = new()
         {
+            MessageResource.StatusEnum.Sent,
+            MessageResource.StatusEnum.Received,
+            MessageResource.StatusEnum.Delivered,
             MessageResource.StatusEnum.Undelivered,
             MessageResource.StatusEnum.Failed,
             MessageResource.StatusEnum.Canceled
@@ -91,7 +94,7 @@
             );
 
             // Wait for a non-pending message status
-            for (var i = 0; !ErrorStatuses.Contains(response.Status) && response.Price is null; ++i)
+            for (var i = 0; !FinishedStatuses.Contains(response.Status); ++i)
             {
                 CancellationToken.ThrowIfCancellationRequested();
 
@@ -124,12 +127,10 @@
                 _logger.LogWarning(message);
                 return Problem(message);
             }
-            _logger.LogInformation($"{blurb}. Cost {response.Price} {response.PriceUnit}");
+            _logger.LogInformation(blurb);
             return Ok(new
             {
                 From = response.From.ToString(),
-                response.Price,
-                response.PriceUnit,
                 response.Sid,
                 Status = response.Status.ToString()
             });
