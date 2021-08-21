@@ -163,7 +163,7 @@
                 body: request.Body
             );
             var result = await _connection.SendAsync(message, CancellationToken);
-            string? responseBody;
+            string responseBody;
             switch (result)
             {
                 case {SendErrorId: not null}:
@@ -184,7 +184,10 @@
 
             return new TwiMLResult(
                 new MessagingResponse()
-                    .Append(new Body(responseBody))
+                    .Append(
+                        new Message()
+                            .Body(responseBody)
+                    )
             );
         }
     }
