@@ -92,7 +92,7 @@
         public async Task<ActionResult> ReceiveMessage(
             string kind,
             ConnectionMessage connectionMessage,
-            [FromHeader(Name = ConnectionHeaders.ServerSecretHeaderName)] string serverSecret)
+            [FromHeader(Name = ConnectionHeaders.ServerSecretHeaderName)] string? serverSecret)
         {
             // Make sure they're an authorized source for this message
             if (!await IsConnectionAuthorized(serverSecret, kind))
