@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Common.Auth;
@@ -10,6 +11,7 @@
     using Common.Controllers;
     using Common.Models;
     using Common.Strings;
+    using Common.Uris;
     using global::Twilio.AspNet.Common;
     using global::Twilio.AspNet.Core;
     using global::Twilio.Clients;
@@ -73,7 +75,14 @@
                 Body = body.Truncate(1600),
                 From = new PhoneNumber(
                     _configuration.GetRequired("TWILIO_PHONE_NUMBER")
-                )
+                ),
+                MediaUrl = message
+                    .SourceMessage
+                    .Medias
+                    .Where(UriChecker.IsValidAndSecure)
+                    .Select(x => new Uri(x, UriKind.Absolute))
+                    .Take(10)
+                    .ToList()
             };
 
             // Send the message
@@ -142,9 +151,12 @@
         [HttpPost("twilio")]
         public async Task<IActionResult> ReceiveFromTwilio(
             [FromForm] SmsRequest request,
-            [FromHeader(Name = SecretHeaderAuthenticationHandler.HeaderName)] string? secret)
+            [FromHeader(Name = SecretHeaderAuthenticationHandler.HeaderName)] string? secret,
+            int numMedia)
         {
             GC.KeepAlive(secret);
+
+            var medias = new string[numMedia];
             {
                 var modelStateDictionary = new ModelStateDictionary();
                 if (request.SmsSid is null)
@@ -155,12 +167,22 @@
                     modelStateDictionary.AddModelError(nameof(request.Body), "Missing value");
                 if (!modelStateDictionary.IsValid || request.SmsSid is null || request.From is null || request.Body is null)
                     return BadRequest(modelStateDictionary);
+                for (var i = 0; i < numMedia; ++i)
+                {
+                    var mediaUrlKey = $"MediaUrl{i}";
+                    var mediaUrlValue = Request.Form[mediaUrlKey].ToString();
+                    if (!UriChecker.IsValidAndSecure(mediaUrlValue))
+                        modelStateDictionary.AddModelError(mediaUrlKey, "Must be a valid https URI");
+                    medias[i] = mediaUrlValue;
+                }
+
             }
             _logger.LogInformation($"Received SMS SID {request.SmsSid} from Twilio");
 
             var message = new ConnectionMessage(
                 user: request.From,
-                body: request.Body
+                body: request.Body,
+                medias: medias
             );
             var result = await _connection.SendAsync(message, CancellationToken);
             string? responseBody;

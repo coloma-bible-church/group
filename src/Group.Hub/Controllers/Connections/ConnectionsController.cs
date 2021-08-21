@@ -1,6 +1,5 @@
 ﻿namespace Group.Hub.Controllers.Connections
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -10,6 +9,7 @@
     using System.Threading.Tasks;
     using Common.Connections;
     using Common.Models;
+    using Common.Uris;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Routing;
@@ -67,8 +67,7 @@
         [HttpPut("{kind}")]
         public async Task<ActionResult> CreateConnection(string kind, ConnectionRequest request)
         {
-            if (!Uri.TryCreate(request.ConnectionEndpoint, UriKind.Absolute, out var connectionEndpointUri)
-                || connectionEndpointUri.Scheme != "https")
+            if (!UriChecker.IsValidAndSecure(request.ConnectionEndpoint))
                 return BadRequest($"Invalid {nameof(request.ConnectionEndpoint)}. Make sure it is an absolute URL using the https scheme");
             if (await _connectionsRepository.ReadAsync(kind, CancellationToken) is not null)
                 return Conflict();
@@ -157,20 +156,15 @@
                     if (!connectionKindToSendDetailsMap.TryGetValue(contactKind, out var sendDetails))
                     {
                         if (await _connectionsRepository.ReadAsync(contactKind, CancellationToken) is not { } connectionModel
-                            || !Uri.TryCreate(
-                                connectionModel.ConnectionEndpoint,
-                                UriKind.Absolute,
-                                out var connectionEndpointUri)
-                            || connectionEndpointUri.Scheme != "https")
+                            || !UriChecker.IsValidAndSecure(connectionModel.ConnectionEndpoint))
                         {
-                            _logger.LogWarning(
-                                $"Bad connection to \"{contactKind}\". Make sure it exists, check its public key, and ensure its send endpoint is https");
+                            _logger.LogWarning($"Bad connection to \"{contactKind}\". Make sure it exists, check its public key, and ensure its send endpoint is https");
                             badConnectionKinds.Add(contactKind);
                             continue;
                         }
 
                         connectionKindToSendDetailsMap[contactKind] = sendDetails = (
-                            connectionEndpointUri.ToString(),
+                            connectionModel.ConnectionEndpoint,
                             connectionModel.ConnectionSecret
                         );
                     }
