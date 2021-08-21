@@ -10,7 +10,6 @@
     using Common.Connections;
     using Common.Controllers;
     using Common.Models;
-    using Common.Strings;
     using Common.Uris;
     using global::Twilio.AspNet.Common;
     using global::Twilio.AspNet.Core;
@@ -59,6 +58,17 @@
 
         CancellationToken CancellationToken => HttpContext.RequestAborted;
 
+        static string FormatMessageBody(HubMessage message)
+        {
+            var signature = $"\n—{message.SourceUserName} ({message.SourceMessage.UserContact})";
+            var body = message.SourceMessage.Body;
+            const int maxLength = 1600;
+            var surplus = body.Length + signature.Length - maxLength;
+            if (surplus <= 0)
+                return body + signature;
+            return $"{body[..(body.Length - surplus - 1)]}…{signature}";
+        }
+
         [Authorize("CONNECTION")]
         [HttpPost("connection")]
         public async Task<ActionResult> ReceiveFromHubAsync(
@@ -69,10 +79,9 @@
             GC.KeepAlive(connectionSecret);
 
             // Set up the message to send
-            var body = $"{message.SourceUserName} ({message.SourceKind}/{message.SourceMessage.UserContact}): {message.SourceMessage.Body}";
             var sendOptions = new CreateMessageOptions(new PhoneNumber(message.TargetUserContact))
             {
-                Body = body.Truncate(1600),
+                Body = FormatMessageBody(message),
                 From = new PhoneNumber(
                     _configuration.GetRequired("TWILIO_PHONE_NUMBER")
                 ),
