@@ -123,7 +123,7 @@
                 kind
             );
 
-            _logger.LogInformation($"Received \"{kind}\" message from \"{fromId}\"");
+            _logger.LogInformation($"Received \"{kind}\" message with {connectionMessage.Medias.Length} media from \"{fromId}\"");
 
             // Send this message to all other users
             await BroadcastMessageAsync(hubMessage, fromId);

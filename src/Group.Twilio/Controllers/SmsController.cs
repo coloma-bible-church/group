@@ -94,6 +94,8 @@
                     .ToList()
             };
 
+            _logger.LogInformation($"From hub: {sendOptions.MediaUrl.Count} media of {message.SourceMessage.Medias.Length}");
+
             // Send the message
             var response = await MessageResource.CreateAsync(
                 sendOptions,
@@ -186,7 +188,7 @@
                 }
 
             }
-            _logger.LogInformation($"Received SMS SID {request.SmsSid} from Twilio");
+            _logger.LogInformation($"Received SMS SID {request.SmsSid} from Twilio with {numMedia} media");
 
             var message = new ConnectionMessage(
                 userContact: request.From,
