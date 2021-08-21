@@ -162,8 +162,8 @@
         [HttpPost("twilio")]
         public async Task<IActionResult> ReceiveFromTwilio(
             [FromForm] SmsRequest request,
-            [FromHeader(Name = SecretHeaderAuthenticationHandler.HeaderName)] string? secret,
-            int numMedia)
+            [FromForm] int numMedia,
+            [FromHeader(Name = SecretHeaderAuthenticationHandler.HeaderName)] string? secret)
         {
             GC.KeepAlive(secret);
 
