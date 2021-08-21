@@ -11,7 +11,6 @@
     using Common.Controllers;
     using Common.Models;
     using Common.Uris;
-    using global::Twilio.AspNet.Common;
     using global::Twilio.AspNet.Core;
     using global::Twilio.Clients;
     using global::Twilio.Rest.Api.V2010.Account;
@@ -23,6 +22,7 @@
     using Microsoft.AspNetCore.Mvc.ModelBinding;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Twilio;
 
     [ApiController]
     [RequireHttps]
@@ -161,13 +161,10 @@
         [Authorize("SECRET")]
         [HttpPost("twilio")]
         public async Task<IActionResult> ReceiveFromTwilio(
-            [FromForm] SmsRequest request,
-            [FromForm] int numMedia,
+            [FromForm] MediaSmsRequest request,
             [FromHeader(Name = SecretHeaderAuthenticationHandler.HeaderName)] string? secret)
         {
             GC.KeepAlive(secret);
-
-            var medias = new string[numMedia];
             {
                 var modelStateDictionary = new ModelStateDictionary();
                 if (request.SmsSid is null)
@@ -178,17 +175,9 @@
                     modelStateDictionary.AddModelError(nameof(request.Body), "Missing value");
                 if (!modelStateDictionary.IsValid || request.SmsSid is null || request.From is null || request.Body is null)
                     return BadRequest(modelStateDictionary);
-                for (var i = 0; i < numMedia; ++i)
-                {
-                    var mediaUrlKey = $"MediaUrl{i}";
-                    var mediaUrlValue = Request.Form[mediaUrlKey].ToString();
-                    if (!UriChecker.IsValidAndSecure(mediaUrlValue))
-                        modelStateDictionary.AddModelError(mediaUrlKey, "Must be a valid https URI");
-                    medias[i] = mediaUrlValue;
-                }
-
             }
-            _logger.LogInformation($"Received SMS SID {request.SmsSid} from Twilio with {numMedia} media");
+            var medias = request.MediaUrls.ToArray();
+            _logger.LogInformation($"Received SMS SID {request.SmsSid} from Twilio with {medias.Length} media");
 
             var message = new ConnectionMessage(
                 userContact: request.From,
