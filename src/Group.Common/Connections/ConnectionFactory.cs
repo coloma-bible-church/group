@@ -26,7 +26,6 @@
             _configuration.GetRequired("SERVER_ENDPOINT"),
             _configuration.GetRequired("SERVER_SECRET"),
             ConnectionHeaders.ServerSecretHeaderName,
-            ConnectionHeaders.ConnectionUserHeaderName,
             _logger
         );
     }

@@ -59,18 +59,16 @@
 
         [Authorize("CONNECTION")]
         [HttpPost("connection")]
-        public async Task<ActionResult> ReceiveFromConnectionAsync(
-            MessageModel messageModel,
+        public async Task<ActionResult> ReceiveFromHubAsync(
+            HubMessage message,
             [FromHeader(Name = ConnectionHeaders.ConnectionSecretHeaderName)] // Helps Swagger UI
-            string connectionSecret,
-            [FromHeader(Name = ConnectionHeaders.ConnectionUserHeaderName)]
-            string connectionUser)
+            string connectionSecret)
         {
             GC.KeepAlive(connectionSecret);
 
             // Set up the message to send
-            var body = messageModel.Body;
-            var sendOptions = new CreateMessageOptions(new PhoneNumber(connectionUser))
+            var body = message.SourceMessage.Body;
+            var sendOptions = new CreateMessageOptions(new PhoneNumber(message.TargetUser))
             {
                 Body = body.Truncate(1600),
                 From = new PhoneNumber(
@@ -120,12 +118,12 @@
             }
 
             // Report status
-            var blurb = $"{response.Sid}: {response.Status} from {response.From} to {response.To ?? connectionUser}";
+            var blurb = $"{response.Sid}: {response.Status} from {response.From} to {response.To}";
             if (response.ErrorCode is {} errorCode)
             {
-                var message = $"{blurb}. Error code {errorCode}: {response.ErrorMessage}";
-                _logger.LogWarning(message);
-                return Problem(message);
+                var errorMessage = $"{blurb}. Error code {errorCode}: {response.ErrorMessage}";
+                _logger.LogWarning(errorMessage);
+                return Problem(errorMessage);
             }
             _logger.LogInformation(blurb);
             return Ok(new
@@ -159,16 +157,34 @@
                     return BadRequest(modelStateDictionary);
             }
             _logger.LogInformation($"Received SMS SID {request.SmsSid} from Twilio");
-            var message = new MessageModel(
-                from: request.From,
+
+            var message = new ConnectionMessage(
+                user: request.From,
                 body: request.Body
             );
-            var issueGuid = await _connection.SendAsync(message, request.From, CancellationToken);
-            if (issueGuid is not null)
-                return Problem($"There was a problem passing the message along. Check the logs for issue {issueGuid}");
+            var result = await _connection.SendAsync(message, CancellationToken);
+            string? responseBody;
+            switch (result)
+            {
+                case {SendErrorId: not null}:
+                    responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {result.SendErrorId}";
+                    break;
+                case {HubResponse: {Error: HubResponse.ErrorInvalidUser}}:
+                    responseBody = "🖥️👋 Thanks for the message, but I don't recognize your number";
+                    break;
+                case {HubResponse: {Error: not null}}:
+                    var guid = Guid.NewGuid();
+                    responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {guid}";
+                    _logger.LogWarning($"{guid}: SMS SID {request.SmsSid}: Unrecognized hub response error: {result.HubResponse.Error}");
+                    break;
+                default:
+                    responseBody = "🖥️👍";
+                    break;
+            }
+
             return new TwiMLResult(
                 new MessagingResponse()
-                    .Append(new Body("👍"))
+                    .Append(new Body(responseBody))
             );
         }
     }

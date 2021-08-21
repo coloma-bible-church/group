@@ -91,9 +91,8 @@
         [AllowAnonymous]
         public async Task<ActionResult> ReceiveMessage(
             string kind,
-            MessageModel messageModel,
-            [FromHeader(Name = ConnectionHeaders.ServerSecretHeaderName)] string serverSecret,
-            [FromHeader(Name = ConnectionHeaders.ConnectionUserHeaderName)] string user)
+            ConnectionMessage connectionMessage,
+            [FromHeader(Name = ConnectionHeaders.ServerSecretHeaderName)] string serverSecret)
         {
             // Make sure they're an authorized source for this message
             if (!await IsConnectionAuthorized(serverSecret, kind))
@@ -105,27 +104,34 @@
                     new ContactModel
                     {
                         Kind = kind,
-                        Value = user
+                        Value = connectionMessage.User
                     },
                     CancellationToken
                 );
-            if (fromId is null)
-                return BadRequest("Invalid user");
-            if (await _usersRepository.ReadAsync(fromId, CancellationToken) is not {} fromIdentity)
-                return BadRequest("Invalid user");
+            if (fromId is null || await _usersRepository.ReadAsync(fromId, CancellationToken) is not {} fromIdentity)
+                return Ok(new HubResponse
+                {
+                    Error = HubResponse.ErrorInvalidUser
+                });
 
-            // Update the message model with this user's info
-            messageModel.From = fromIdentity.Name;
+            // Create a hub message model from this connection message model
+            var hubMessage = new HubMessage(
+                fromIdentity.Name,
+                connectionMessage,
+                kind);
 
             _logger.LogInformation($"Received \"{kind}\" message from \"{fromId}\"");
 
             // Send this message to all other users
-            await BroadcastMessageAsync(messageModel, fromId);
+            await BroadcastMessageAsync(hubMessage, fromId);
 
-            return Ok();
+            return Ok(new HubResponse
+            {
+                Error = null
+            });
         }
 
-        async Task BroadcastMessageAsync(MessageModel messageModel, string fromId)
+        async Task BroadcastMessageAsync(HubMessage hubMessage, string fromId)
         {
             var userIds = await _usersRepository.GetIdsAsync(CancellationToken);
             var connectionKindToSendDetailsMap = new Dictionary<string, (string SendEndpoint, string ConnectionSecret)>();
@@ -170,17 +176,15 @@
                     }
 
                     // Try POSTing the message through this connection to this user
+                    hubMessage.TargetUser = contact.Value;
                     var response = await _httpClient.SendAsync(
                         new HttpRequestMessage(HttpMethod.Post, sendDetails.SendEndpoint)
                         {
-                            Content = JsonContent.Create(messageModel),
+                            Content = JsonContent.Create(hubMessage),
                             Headers =
                             {
                                 {
                                     ConnectionHeaders.ConnectionSecretHeaderName, sendDetails.ConnectionSecret
-                                },
-                                {
-                                    ConnectionHeaders.ConnectionUserHeaderName, contact.Value
                                 }
                             }
                         },

@@ -6,6 +6,6 @@
 
     public interface IConnector
     {
-        Task<ActionResult> ReceiveFromConnectionAsync(MessageModel model, string connectionSecret, string connectionUser);
+        Task<ActionResult> ReceiveFromHubAsync(HubMessage model, string connectionSecret);
     }
 }
