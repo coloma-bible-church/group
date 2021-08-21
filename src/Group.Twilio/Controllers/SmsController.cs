@@ -67,7 +67,7 @@
             GC.KeepAlive(connectionSecret);
 
             // Set up the message to send
-            var body = message.SourceMessage.Body;
+            var body = $"{message.Name} ({message.SourceKind}/{message.SourceMessage.User}): {message.SourceMessage.Body}";
             var sendOptions = new CreateMessageOptions(new PhoneNumber(message.TargetUser))
             {
                 Body = body.Truncate(1600),
@@ -163,7 +163,7 @@
                 body: request.Body
             );
             var result = await _connection.SendAsync(message, CancellationToken);
-            string responseBody;
+            string? responseBody;
             switch (result)
             {
                 case {SendErrorId: not null}:
@@ -178,16 +178,18 @@
                     _logger.LogWarning($"{guid}: SMS SID {request.SmsSid}: Unrecognized hub response error: {result.HubResponse.Error}");
                     break;
                 default:
-                    responseBody = "🖥️👍";
+                    responseBody = null;
                     break;
             }
 
+            var messagingResponse = new MessagingResponse();
+            if (responseBody is not null)
+                messagingResponse.Append(
+                    new Message()
+                        .Body(responseBody)
+                );
             return new TwiMLResult(
-                new MessagingResponse()
-                    .Append(
-                        new Message()
-                            .Body(responseBody)
-                    )
+                messagingResponse
             );
         }
     }
