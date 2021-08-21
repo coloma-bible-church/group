@@ -9,21 +9,27 @@
         {}
 
         public HubMessage(
-            string name,
+            string sourceUserName,
+            string sourceUserId,
             ConnectionMessage sourceMessage,
             string sourceKind)
         {
             SourceMessage = sourceMessage;
             SourceKind = sourceKind;
-            Name = name;
+            SourceUserId = sourceUserId;
+            SourceUserName = sourceUserName;
         }
 
-        public string Name { get; set; } = string.Empty;
+        public string SourceUserName { get; set; } = string.Empty;
+
+        public string SourceUserId { get; set; } = string.Empty;
 
         public ConnectionMessage SourceMessage { get; set; } = new();
 
         public string SourceKind { get; set; } = string.Empty;
 
-        public string TargetUser { get; set; } = string.Empty;
+        public string TargetUserContact { get; set; } = string.Empty;
+
+        public string TargetUserId { get; set; } = string.Empty;
     }
 }

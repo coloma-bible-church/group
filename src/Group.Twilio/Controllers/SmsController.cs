@@ -69,8 +69,8 @@
             GC.KeepAlive(connectionSecret);
 
             // Set up the message to send
-            var body = $"{message.Name} ({message.SourceKind}/{message.SourceMessage.User}): {message.SourceMessage.Body}";
-            var sendOptions = new CreateMessageOptions(new PhoneNumber(message.TargetUser))
+            var body = $"{message.SourceUserName} ({message.SourceKind}/{message.SourceMessage.UserContact}): {message.SourceMessage.Body}";
+            var sendOptions = new CreateMessageOptions(new PhoneNumber(message.TargetUserContact))
             {
                 Body = body.Truncate(1600),
                 From = new PhoneNumber(
@@ -127,7 +127,7 @@
             }
 
             // Report status
-            var blurb = $"{response.Sid}: {response.Status} from {response.From} to {response.To}";
+            var blurb = $"{response.Sid}: {response.Status} from {message.SourceUserId} to {message.TargetUserId}";
             if (response.ErrorCode is {} errorCode)
             {
                 var errorMessage = $"{blurb}. Error code {errorCode}: {response.ErrorMessage}";
@@ -180,7 +180,7 @@
             _logger.LogInformation($"Received SMS SID {request.SmsSid} from Twilio");
 
             var message = new ConnectionMessage(
-                user: request.From,
+                userContact: request.From,
                 body: request.Body,
                 medias: medias
             );

@@ -75,6 +75,7 @@
                 kind,
                 request,
                 CancellationToken);
+            _logger.LogInformation($"Created connection {kind} -> {request.ConnectionEndpoint}");
             return Ok(connectionModel);
         }
 
@@ -83,6 +84,7 @@
         {
             if (!await _connectionsRepository.DeleteAsync(kind, CancellationToken))
                 return NotFound();
+            _logger.LogInformation($"Deleted connection {kind}");
             return Ok();
         }
 
@@ -103,7 +105,7 @@
                     new ContactModel
                     {
                         Kind = kind,
-                        Value = connectionMessage.User
+                        Value = connectionMessage.UserContact
                     },
                     CancellationToken
                 );
@@ -116,8 +118,10 @@
             // Create a hub message model from this connection message model
             var hubMessage = new HubMessage(
                 fromIdentity.Name,
+                fromId,
                 connectionMessage,
-                kind);
+                kind
+            );
 
             _logger.LogInformation($"Received \"{kind}\" message from \"{fromId}\"");
 
@@ -170,7 +174,8 @@
                     }
 
                     // Try POSTing the message through this connection to this user
-                    hubMessage.TargetUser = contact.Value;
+                    hubMessage.TargetUserContact = contact.Value;
+                    hubMessage.TargetUserId = userId;
                     var response = await _httpClient.SendAsync(
                         new HttpRequestMessage(HttpMethod.Post, sendDetails.SendEndpoint)
                         {

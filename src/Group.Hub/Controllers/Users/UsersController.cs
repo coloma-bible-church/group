@@ -6,6 +6,7 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Routing;
+    using Microsoft.Extensions.Logging;
     using Models;
     using Repositories.Users;
 
@@ -16,13 +17,16 @@
     {
         readonly UsersRepository _usersRepository;
         readonly LinkGenerator _linkGenerator;
+        readonly ILogger<UsersController> _logger;
 
         public UsersController(
             UsersRepository usersRepository,
-            LinkGenerator linkGenerator)
+            LinkGenerator linkGenerator,
+            ILogger<UsersController> logger)
         {
             _usersRepository = usersRepository;
             _linkGenerator = linkGenerator;
+            _logger = logger;
         }
 
         CancellationToken CancellationToken => HttpContext.RequestAborted;
@@ -50,6 +54,7 @@
         public async Task<ActionResult> PutUser(string id, UserModel user)
         {
             await _usersRepository.UpsertAsync(id, user, CancellationToken);
+            _logger.LogInformation($"Upserted user {id}");
             return Ok();
         }
 
@@ -59,6 +64,7 @@
             if (await _usersRepository.ReadAsync(id, CancellationToken) is null)
                 return NotFound();
             await _usersRepository.DeleteAsync(id, CancellationToken);
+            _logger.LogInformation($"Deleted user {id}");
             return Ok();
         }
     }

@@ -9,16 +9,16 @@
         {}
 
         public ConnectionMessage(
-            string user,
+            string userContact,
             string body,
             string[] medias)
         {
-            User = user;
+            UserContact = userContact;
             Body = body;
             Medias = medias;
         }
 
-        public string User { get; set; } = string.Empty;
+        public string UserContact { get; set; } = string.Empty;
 
         public string Body { get; set; } = string.Empty;
 
