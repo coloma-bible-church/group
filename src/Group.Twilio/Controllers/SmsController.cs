@@ -197,40 +197,54 @@
             }
             _logger.LogInformation($"Received SMS SID {request.SmsSid} from Twilio with {numMedia} media");
 
-            var message = new ConnectionMessage(
-                userContact: request.From,
-                body: request.Body,
-                medias: medias
-            );
-            var result = await _connection.SendAsync(message, CancellationToken);
-            string? responseBody;
-            switch (result)
+            if (!string.IsNullOrWhiteSpace(request.OptOutType))
             {
-                case {SendErrorId: not null}:
-                    responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {result.SendErrorId}";
-                    break;
-                case {HubResponse: {Error: HubResponse.ErrorInvalidUser}}:
-                    responseBody = "🖥️👋 Thanks for the message, but I don't recognize your number";
-                    break;
-                case {HubResponse: {Error: not null}}:
-                    var guid = Guid.NewGuid();
-                    responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {guid}";
-                    _logger.LogWarning($"{guid}: SMS SID {request.SmsSid}: Unrecognized hub response error: {result.HubResponse.Error}");
-                    break;
-                default:
-                    responseBody = null;
-                    break;
+                var responseBody = request.OptOutType switch
+                {
+                    "STOP" => "Sorry to see you go! If you want to join this group again then you'll need to send the word \"START\" to this number",
+                    "START" => "Thanks for your interest. You'll need to be added to this group by an administrator before you can send and receive messages. Send \"STOP\" at any time to stop receiving texts from this number",
+                    _ => "This number is used to send and receive messages among this group's members. Send \"STOP\" at any time to stop receiving texts from this number"
+                };
+                _logger.LogInformation($"{request.SmsSid} opt out {request.OptOutType}");
+                return new TwiMLResult(new MessagingResponse().Append(new Message().Append(new Body(responseBody))));
             }
-
-            var messagingResponse = new MessagingResponse();
-            if (responseBody is not null)
-                messagingResponse.Append(
-                    new Message()
-                        .Body(responseBody)
+            else
+            {
+                var message = new ConnectionMessage(
+                    userContact: request.From,
+                    body: request.Body,
+                    medias: medias
                 );
-            return new TwiMLResult(
-                messagingResponse
-            );
+                var result = await _connection.SendAsync(message, CancellationToken);
+                string? responseBody;
+                switch (result)
+                {
+                    case {SendErrorId: not null}:
+                        responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {result.SendErrorId}";
+                        break;
+                    case {HubResponse: {Error: HubResponse.ErrorInvalidUser}}:
+                        responseBody = "🖥️👋 Thanks for the message, but I don't recognize your number";
+                        break;
+                    case {HubResponse: {Error: not null}}:
+                        var guid = Guid.NewGuid();
+                        responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {guid}";
+                        _logger.LogWarning($"{guid}: SMS SID {request.SmsSid}: Unrecognized hub response error: {result.HubResponse.Error}");
+                        break;
+                    default:
+                        responseBody = null;
+                        break;
+                }
+
+                var messagingResponse = new MessagingResponse();
+                if (responseBody is not null)
+                    messagingResponse.Append(
+                        new Message()
+                            .Append(new Body(responseBody))
+                    );
+                return new TwiMLResult(
+                    messagingResponse
+                );
+            }
         }
     }
 }
