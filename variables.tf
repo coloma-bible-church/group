@@ -25,15 +25,15 @@ variable "twilio_account_sid" {
   sensitive   = true
 }
 
-variable "twilio_auth_token" {
+variable "twilio_messaging_service_id" {
   type        = string
-  description = "Twilio auth token"
+  description = "Twilio messaging service ID"
   sensitive   = true
 }
 
-variable "twilio_phone_number" {
+variable "twilio_auth_token" {
   type        = string
-  description = "Twilio phone number"
+  description = "Twilio auth token"
   sensitive   = true
 }
 

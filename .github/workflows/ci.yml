@@ -38,8 +38,8 @@ jobs:
       TF_VAR_environment: ${{needs.parse.outputs.ref}}
       TF_VAR_server_secret: ${{secrets.SERVER_SECRET}}
       TF_VAR_twilio_account_sid: ${{secrets.TWILIO_ACCOUNT_SID}}
+      TF_VAR_twilio_messaging_service_id: ${{secrets.TWILIO_MESSAGING_SERVICE_ID}}
       TF_VAR_twilio_auth_token: ${{secrets.TWILIO_AUTH_TOKEN}}
-      TF_VAR_twilio_phone_number: ${{secrets.TWILIO_PHONE_NUMBER}}
       TF_VAR_twilio_connection_secret: ${{secrets.TWILIO_CONNECTION_SECRET}}
       TF_VAR_twilio_server_secret: ${{secrets.TWILIO_SERVER_SECRET}}
 

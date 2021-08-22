@@ -93,16 +93,14 @@
             var sendOptions = new CreateMessageOptions(new PhoneNumber(message.TargetUserContact))
             {
                 Body = FormatMessageBody(message),
-                From = new PhoneNumber(
-                    _configuration.GetRequired("TWILIO_PHONE_NUMBER")
-                ),
                 MediaUrl = message
                     .SourceMessage
                     .Medias
                     .Where(UriChecker.IsValidAndSecure)
                     .Select(x => new Uri(x, UriKind.Absolute))
                     .Take(10)
-                    .ToList()
+                    .ToList(),
+                MessagingServiceSid = _configuration.GetRequired("TWILIO_MESSAGING_SERVICE_ID")
             };
 
             // Send the message
