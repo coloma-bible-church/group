@@ -215,24 +215,33 @@
                     body: request.Body,
                     medias: medias
                 );
-                var result = await _connection.SendAsync(message, CancellationToken);
                 string? responseBody;
-                switch (result)
+                try
                 {
-                    case {SendErrorId: not null}:
-                        responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {result.SendErrorId}";
-                        break;
-                    case {HubResponse: {Error: HubResponse.ErrorInvalidUser}}:
-                        responseBody = "🖥️👋 Thanks for the message, but I don't recognize your number";
-                        break;
-                    case {HubResponse: {Error: not null}}:
-                        var guid = Guid.NewGuid();
-                        responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {guid}";
-                        _logger.LogWarning($"{guid}: SMS SID {request.SmsSid}: Unrecognized hub response error: {result.HubResponse.Error}");
-                        break;
-                    default:
-                        responseBody = null;
-                        break;
+                    var result = await _connection.SendAsync(message, CancellationToken);
+                    switch (result)
+                    {
+                        case {SendErrorId: not null}:
+                            responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {result.SendErrorId}";
+                            break;
+                        case {HubResponse: {Error: HubResponse.ErrorInvalidUser}}:
+                            responseBody = "🖥️👋 Thanks for the message, but I don't recognize your number";
+                            break;
+                        case {HubResponse: {Error: not null}}:
+                            var guid = Guid.NewGuid();
+                            responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {guid}";
+                            _logger.LogWarning($"{guid}: SMS SID {request.SmsSid}: Unrecognized hub response error: {result.HubResponse.Error}");
+                            break;
+                        default:
+                            responseBody = null;
+                            break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    var guid = Guid.NewGuid();
+                    _logger.LogWarning(e, $"{guid}: SMS SID {request.SmsSid}: Failed to send the message to the hub");
+                    responseBody = $"🖥️😕 There was a problem processing your message. Ask a human to check the logs for {guid}";
                 }
 
                 var messagingResponse = new MessagingResponse();
