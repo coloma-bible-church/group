@@ -58,10 +58,10 @@
 
         CancellationToken CancellationToken => HttpContext.RequestAborted;
 
-        static string FormatMessageBody(HubMessage message)
+        static string FormatMessageBody(SourceInformation sourceInformation, HubInformation hubInformation)
         {
-            var signature = $"--{message.SourceUserName} ({message.SourceMessage.UserContact})";
-            var body = message.SourceMessage.Body;
+            var signature = $"--{hubInformation.UserName} ({sourceInformation.UserContact})";
+            var body = sourceInformation.Body;
             if (string.IsNullOrWhiteSpace(body))
                 return signature;
             signature = "\n" + signature;
@@ -83,18 +83,19 @@
         [Authorize("CONNECTION")]
         [HttpPost("connection")]
         public async Task<ActionResult> ReceiveFromHubAsync(
-            HubMessage message,
-            [FromHeader(Name = ConnectionHeaders.ConnectionSecretHeaderName)] // Helps Swagger UI
-            string connectionSecret)
+            MessageFromHubToConnector message,
+            [FromHeader(Name = ConnectionHeaders.ConnectionSecretHeaderName)]
+            string connectionSecret // Helps Swagger UI
+        )
         {
             GC.KeepAlive(connectionSecret);
 
             // Set up the message to send
-            var sendOptions = new CreateMessageOptions(new PhoneNumber(message.TargetUserContact))
+            var sendOptions = new CreateMessageOptions(new PhoneNumber(message.TargetInformation.UserContact))
             {
-                Body = FormatMessageBody(message),
+                Body = FormatMessageBody(message.SourceInformation, message.HubInformation),
                 MediaUrl = message
-                    .SourceMessage
+                    .SourceInformation
                     .Medias
                     .Where(UriChecker.IsValidAndSecure)
                     .Select(x => new Uri(x, UriKind.Absolute))
@@ -145,7 +146,7 @@
             }
 
             // Report status
-            var blurb = $"{response.Sid}: {response.Status} from {message.SourceUserId} to {message.TargetUserId}";
+            var blurb = $"{response.Sid}: {response.Status} from {message.HubInformation.UserId} to {message.TargetInformation.UserId}";
             if (response.ErrorCode is {} errorCode)
             {
                 var errorMessage = $"{blurb}. Error code {errorCode}: {response.ErrorMessage}";
@@ -211,10 +212,12 @@
             }
             else
             {
-                var message = new ConnectionMessage(
-                    userContact: request.From,
-                    body: request.Body,
-                    medias: medias
+                var message = new MessageFromConnectorToHub(
+                    new SourceInformation(
+                        request.Body,
+                        medias,
+                        request.From
+                    )
                 );
                 string? responseBody;
                 try

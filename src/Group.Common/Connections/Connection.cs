@@ -32,7 +32,7 @@
         }
 
         [SuppressMessage("ReSharper", "RedundantIfElseBlock")]
-        public async Task<SendResult> SendAsync(ConnectionMessage message, CancellationToken cancellationToken)
+        public async Task<SendResult> SendAsync(MessageFromConnectorToHub message, CancellationToken cancellationToken)
         {
             var response = await _client.SendAsync(
                 new HttpRequestMessage(HttpMethod.Post, _serverEndpoint)
