@@ -60,13 +60,24 @@
 
         static string FormatMessageBody(HubMessage message)
         {
-            var signature = $"\n—{message.SourceUserName} ({message.SourceMessage.UserContact})";
+            var signature = $"--{message.SourceUserName} ({message.SourceMessage.UserContact})";
             var body = message.SourceMessage.Body;
-            const int maxLength = 1600;
-            var surplus = body.Length + signature.Length - maxLength;
-            if (surplus <= 0)
-                return body + signature;
-            return $"{body[..(body.Length - surplus - 1)]}…{signature}";
+            if (string.IsNullOrWhiteSpace(body))
+                return signature;
+            signature = "\n" + signature;
+            body = Truncate(
+                body,
+                1600,
+                "...(truncated)"
+            );
+            return body + signature;
+        }
+
+        static string Truncate(string value, int maxCharacters, string truncation)
+        {
+            if (value.Length <= maxCharacters)
+                return value;
+            return value[..(maxCharacters - truncation.Length)] + truncation;
         }
 
         [Authorize("CONNECTION")]
@@ -93,8 +104,6 @@
                     .Take(10)
                     .ToList()
             };
-
-            _logger.LogInformation($"From hub: {sendOptions.MediaUrl.Count} media of {message.SourceMessage.Medias.Length}");
 
             // Send the message
             var response = await MessageResource.CreateAsync(
